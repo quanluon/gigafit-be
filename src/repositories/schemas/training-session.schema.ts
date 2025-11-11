@@ -49,4 +49,3 @@ export class TrainingSession extends Document {
 }
 
 export const TrainingSessionSchema = SchemaFactory.createForClass(TrainingSession);
-

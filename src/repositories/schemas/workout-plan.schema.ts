@@ -53,4 +53,3 @@ export class WorkoutPlan extends Document {
 }
 
 export const WorkoutPlanSchema = SchemaFactory.createForClass(WorkoutPlan);
-

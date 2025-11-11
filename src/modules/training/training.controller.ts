@@ -59,11 +59,7 @@ export class TrainingController extends BaseController {
     @Param('id') id: string,
     @Body() updateSessionDto: UpdateSessionDto,
   ): Promise<ApiResponseType<TrainingSession>> {
-    const session = await this.trainingService.updateSession(
-      req.user.userId,
-      id,
-      updateSessionDto,
-    );
+    const session = await this.trainingService.updateSession(req.user.userId, id, updateSessionDto);
     return this.success(session, 'Session updated');
   }
 
@@ -123,4 +119,3 @@ export class TrainingController extends BaseController {
     return this.success(sessions);
   }
 }
-

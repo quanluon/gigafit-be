@@ -29,4 +29,3 @@ export class Award extends Document {
 }
 
 export const AwardSchema = SchemaFactory.createForClass(Award);
-

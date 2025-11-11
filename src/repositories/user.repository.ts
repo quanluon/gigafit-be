@@ -18,4 +18,3 @@ export class UserRepository extends BaseRepository<User> {
     return this.findOne({ cognitoSub });
   }
 }
-

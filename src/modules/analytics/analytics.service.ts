@@ -167,9 +167,7 @@ export class AnalyticsService {
     if (sessions.length === 0) return 0;
 
     // Sort by date descending
-    const sortedSessions = sessions.sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
+    const sortedSessions = sessions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     let streak = 0;
     let currentDate = new Date();
@@ -194,4 +192,3 @@ export class AnalyticsService {
     return streak;
   }
 }
-

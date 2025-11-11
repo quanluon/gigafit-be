@@ -18,4 +18,3 @@ export class GenerateMealPlanDto {
   @Type(() => Boolean)
   fullWeek?: boolean;
 }
-

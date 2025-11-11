@@ -106,4 +106,3 @@ export class AnalyticsController extends BaseController {
     return this.success(awards);
   }
 }
-

@@ -309,7 +309,7 @@ export class MealService {
 
     try {
       const aiResponse = await this.aiService.generateMealPlan(prompt);
-      return aiResponse;
+      return aiResponse as MealPlan['schedule'];
     } catch (error) {
       Logger.error('AI meal plan generation failed, falling back to templates:', error);
       // Fallback to template-based generation

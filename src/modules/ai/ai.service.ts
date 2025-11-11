@@ -262,7 +262,7 @@ export class AIService {
     };
   }
 
-  async generateMealPlan(prompt: string): Promise<any> {
+  async generateMealPlan(prompt: string): Promise<unknown> {
     try {
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -286,7 +286,7 @@ export class AIService {
         throw new Error('No response from AI');
       }
 
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as { schedule: unknown };
       return parsed.schedule;
     } catch (error) {
       Logger.error('AI meal plan generation failed:', error);

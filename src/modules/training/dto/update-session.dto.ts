@@ -8,4 +8,3 @@ export class UpdateSessionDto {
   @Type(() => LogExerciseDto)
   exercises!: LogExerciseDto[];
 }
-

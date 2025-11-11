@@ -50,4 +50,3 @@ export class UserController extends BaseController {
     return this.success({ isComplete });
   }
 }
-

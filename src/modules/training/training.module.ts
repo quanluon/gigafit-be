@@ -8,4 +8,3 @@ import { TrainingService } from './training.service';
   exports: [TrainingService],
 })
 export class TrainingModule {}
-

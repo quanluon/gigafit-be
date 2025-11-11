@@ -11,4 +11,3 @@ import { AIModule } from '../ai/ai.module';
   exports: [MealService, TDEECalculatorService],
 })
 export class MealModule {}
-

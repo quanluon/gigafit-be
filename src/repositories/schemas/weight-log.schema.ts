@@ -23,4 +23,3 @@ export class WeightLog extends Document {
 }
 
 export const WeightLogSchema = SchemaFactory.createForClass(WeightLog);
-

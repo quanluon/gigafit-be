@@ -15,13 +15,25 @@ module.exports = {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: ['.eslintrc.js', 'test/**/*'],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'error',
     '@typescript-eslint/explicit-module-boundary-types': 'error',
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    // Enforce relative imports within same directory
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['@modules/*'],
+            message: 'Use relative imports for files in the same module. Path aliases should only be used for cross-module imports.',
+          },
+        ],
+      },
+    ],
   },
 };
 

@@ -10,4 +10,3 @@ import { AIModule } from '../ai/ai.module';
   exports: [WorkoutService],
 })
 export class WorkoutModule {}
-

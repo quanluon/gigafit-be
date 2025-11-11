@@ -19,11 +19,6 @@ export class AwardRepository extends BaseRepository<Award> {
   }
 
   async getTopAwards(userId: string, limit: number = 5): Promise<Award[]> {
-    return this.model
-      .find({ userId })
-      .sort({ percentile: -1, value: -1 })
-      .limit(limit)
-      .exec();
+    return this.model.find({ userId }).sort({ percentile: -1, value: -1 }).limit(limit).exec();
   }
 }
-

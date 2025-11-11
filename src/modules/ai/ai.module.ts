@@ -6,4 +6,3 @@ import { AIService } from './ai.service';
   exports: [AIService],
 })
 export class AIModule {}
-

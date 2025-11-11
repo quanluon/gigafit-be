@@ -6,4 +6,3 @@ export * from './award.repository';
 export * from './weight-log.repository';
 export * from './meal-plan.repository';
 export * from './repository.module';
-

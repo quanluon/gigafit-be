@@ -7,9 +7,7 @@ import { SessionStatus } from '../common/enums';
 
 @Injectable()
 export class TrainingSessionRepository extends BaseRepository<TrainingSession> {
-  constructor(
-    @InjectModel(TrainingSession.name) trainingSessionModel: Model<TrainingSession>,
-  ) {
+  constructor(@InjectModel(TrainingSession.name) trainingSessionModel: Model<TrainingSession>) {
     super(trainingSessionModel);
   }
 
@@ -29,4 +27,3 @@ export class TrainingSessionRepository extends BaseRepository<TrainingSession> {
     return this.model.find({ userId }).sort({ createdAt: -1 }).limit(limit).exec();
   }
 }
-

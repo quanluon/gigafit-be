@@ -98,9 +98,9 @@ export class AuthService {
       });
       const cognitoUserData = await this.cognitoClient.send(getUserCommand);
       const cognitoSub = cognitoUserData.Username || '';
-      
+
       // Extract email from Cognito attributes
-      const emailAttribute = cognitoUserData.UserAttributes?.find(attr => attr.Name === 'email');
+      const emailAttribute = cognitoUserData.UserAttributes?.find((attr) => attr.Name === 'email');
       const cognitoEmail = emailAttribute?.Value || email;
 
       // Get user from database

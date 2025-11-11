@@ -81,4 +81,3 @@ export class MealPlan extends Document {
 }
 
 export const MealPlanSchema = SchemaFactory.createForClass(MealPlan);
-

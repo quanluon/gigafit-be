@@ -27,4 +27,3 @@ export class WorkoutRepository extends BaseRepository<WorkoutPlan> {
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   }
 }
-

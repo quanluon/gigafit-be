@@ -14,7 +14,11 @@ export class WeightLogRepository extends BaseRepository<WeightLog> {
     return this.model.find({ userId }).sort({ date: -1 }).limit(limit).exec();
   }
 
-  async findByUserInDateRange(userId: string, startDate: Date, endDate: Date): Promise<WeightLog[]> {
+  async findByUserInDateRange(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<WeightLog[]> {
     return this.find({
       userId,
       date: { $gte: startDate, $lte: endDate },
@@ -25,4 +29,3 @@ export class WeightLogRepository extends BaseRepository<WeightLog> {
     return this.model.findOne({ userId }).sort({ date: -1 }).exec();
   }
 }
-

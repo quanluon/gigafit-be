@@ -27,4 +27,3 @@ export class MealPlanRepository extends BaseRepository<MealPlan> {
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   }
 }
-

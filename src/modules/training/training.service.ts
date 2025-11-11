@@ -30,14 +30,18 @@ export class TrainingService {
 
   async getActiveSession(userId: string): Promise<TrainingSession | null> {
     const session = await this.trainingSessionRepository.findActiveSession(userId);
-    
+
     if (session) {
       // Check if session is from a past day
       const isPastDay = this.isSessionFromPastDay(session.dayOfWeek);
-      
+
       if (isPastDay) {
         // Auto-complete the old session
-        const sessionId = (session as any)._id?.toString() || session.id?.toString();
+        const sessionDoc = session as unknown as {
+          _id?: { toString: () => string };
+          id?: { toString: () => string };
+        };
+        const sessionId = sessionDoc._id?.toString() || sessionDoc.id?.toString();
         if (sessionId) {
           await this.trainingSessionRepository.update(sessionId, {
             endTime: new Date(),
@@ -47,14 +51,14 @@ export class TrainingService {
         return null; // Return null since the old session is now completed
       }
     }
-    
+
     return session;
   }
 
   private isSessionFromPastDay(sessionDay: DayOfWeek): boolean {
     const today = new Date();
     const currentDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1; // Monday = 0, Sunday = 6
-    
+
     const dayOrder = [
       DayOfWeek.MONDAY,
       DayOfWeek.TUESDAY,
@@ -64,9 +68,9 @@ export class TrainingService {
       DayOfWeek.SATURDAY,
       DayOfWeek.SUNDAY,
     ];
-    
+
     const sessionDayIndex = dayOrder.indexOf(sessionDay);
-    
+
     // If session day is before current day in the week
     return sessionDayIndex < currentDayIndex;
   }
