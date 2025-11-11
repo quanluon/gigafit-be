@@ -363,13 +363,42 @@ export class MealService {
               "description": { "en": "High protein breakfast", "vi": "Bữa sáng giàu protein" },
               "quantity": "3 eggs (150g)",
               "macros": { "calories": 210, "protein": 18, "carbs": 2, "fat": 14 }
+            },
+            {
+              "name": { "en": "Whole Wheat Toast", "vi": "Bánh mì nguyên cám" },
+              "description": { "en": "Complex carbs", "vi": "Carb phức hợp" },
+              "quantity": "2 slices",
+              "macros": { "calories": 160, "protein": 6, "carbs": 30, "fat": 2 }
             }
-          ]
+          ],
+          "totalMacros": { "calories": 370, "protein": 24, "carbs": 32, "fat": 16 }
+        },
+        {
+          "type": "lunch",
+          "items": [...],
+          "totalMacros": { "calories": 550, "protein": 45, "carbs": 60, "fat": 15 }
+        },
+        {
+          "type": "dinner",
+          "items": [...],
+          "totalMacros": { "calories": 500, "protein": 40, "carbs": 50, "fat": 18 }
+        },
+        {
+          "type": "snack",
+          "items": [...],
+          "totalMacros": { "calories": 120, "protein": 15, "carbs": 8, "fat": 4 }
         }
-      ]
+      ],
+      "dailyTotals": { "calories": 1540, "protein": 124, "carbs": 150, "fat": 53 }
     }
   ]
 }
+
+IMPORTANT: 
+- Each meal MUST have "totalMacros" (sum of all items in the meal)
+- Each day MUST have "dailyTotals" (sum of all meals in the day)
+- Include 2-3 items per meal
+- Ensure macros add up correctly
 
 Generate a comprehensive, nutritionally balanced meal plan that helps achieve the ${goalDescriptions[goal]} goal.`;
   }
