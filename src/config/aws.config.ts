@@ -6,6 +6,7 @@ export default registerAs('aws', () => ({
     userPoolId: process.env.AWS_COGNITO_USER_POOL_ID || '',
     clientId: process.env.AWS_COGNITO_CLIENT_ID || '',
     authority: process.env.AWS_COGNITO_AUTHORITY || '',
+    autoConfirmUser: process.env.AWS_COGNITO_AUTO_CONFIRM_USER === 'true',
   },
   s3: {
     bucket: process.env.AWS_S3_BUCKET || '',

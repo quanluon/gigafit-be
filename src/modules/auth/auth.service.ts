@@ -6,6 +6,7 @@ import {
   SignUpCommand,
   InitiateAuthCommand,
   GetUserCommand,
+  AdminConfirmSignUpCommand,
   AuthFlowType,
 } from '@aws-sdk/client-cognito-identity-provider';
 import { User } from '../../repositories';
@@ -18,6 +19,8 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 export class AuthService {
   private cognitoClient: CognitoIdentityProviderClient;
   private clientId: string;
+  private userPoolId: string;
+  private autoConfirmUser: boolean = true;
 
   constructor(
     private readonly userService: UserService,
@@ -28,6 +31,7 @@ export class AuthService {
       region: this.configService.get<string>('aws.region'),
     });
     this.clientId = this.configService.get<string>('aws.cognito.clientId') || '';
+    this.userPoolId = this.configService.get<string>('aws.cognito.userPoolId') || '';
   }
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
@@ -55,6 +59,15 @@ export class AuthService {
     try {
       const response = await this.cognitoClient.send(signUpCommand);
       const cognitoSub = response.UserSub || '';
+
+      // Auto-confirm user if enabled
+      if (this.autoConfirmUser) {
+        const confirmCommand = new AdminConfirmSignUpCommand({
+          UserPoolId: this.userPoolId,
+          Username: email,
+        });
+        await this.cognitoClient.send(confirmCommand);
+      }
 
       // Create user in database
       const user = await this.userService.create({
@@ -94,7 +107,6 @@ export class AuthService {
     try {
       const response = await this.cognitoClient.send(authCommand);
       const accessToken = response.AuthenticationResult?.AccessToken || '';
-      const refreshToken = response.AuthenticationResult?.RefreshToken || '';
 
       // Get user info from Cognito
       const getUserCommand = new GetUserCommand({
@@ -119,6 +131,9 @@ export class AuthService {
 
       // Generate our own JWT token
       const jwtToken = this.generateAccessToken(cognitoSub, user.email);
+
+      // Generate new refresh token
+      const refreshToken = this.generateRefreshToken(cognitoSub, user.email);
 
       return {
         accessToken: jwtToken,
@@ -158,20 +173,17 @@ export class AuthService {
 
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     try {
-      // Verify refresh token
       const payload = this.jwtService.verify(refreshToken);
 
       if (payload.type !== 'refresh') {
         throw new UnauthorizedException('Invalid token type');
       }
 
-      // Validate user still exists
       const user = await this.userService.findByCognitoSub(payload.sub);
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
 
-      // Generate new tokens
       const newAccessToken = this.generateAccessToken(payload.sub, payload.email);
       const newRefreshToken = this.generateRefreshToken(payload.sub, payload.email);
 
