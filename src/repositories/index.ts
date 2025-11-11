@@ -1,0 +1,9 @@
+export * from './schemas';
+export * from './user.repository';
+export * from './workout.repository';
+export * from './training-session.repository';
+export * from './award.repository';
+export * from './weight-log.repository';
+export * from './meal-plan.repository';
+export * from './repository.module';
+
