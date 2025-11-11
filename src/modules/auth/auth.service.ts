@@ -65,8 +65,12 @@ export class AuthService {
       // Generate JWT token
       const accessToken = this.generateAccessToken(cognitoSub, email);
 
+      // Generate refresh token
+      const refreshToken = this.generateRefreshToken(cognitoSub, email);
+
       return {
         accessToken,
+        refreshToken,
         user,
       };
     } catch (error) {
@@ -90,7 +94,7 @@ export class AuthService {
     try {
       const response = await this.cognitoClient.send(authCommand);
       const accessToken = response.AuthenticationResult?.AccessToken || '';
-      const refreshToken = response.AuthenticationResult?.RefreshToken;
+      const refreshToken = response.AuthenticationResult?.RefreshToken || '';
 
       // Get user info from Cognito
       const getUserCommand = new GetUserCommand({
@@ -131,11 +135,53 @@ export class AuthService {
       {
         sub: cognitoSub,
         email,
+        type: 'access',
       },
       {
-        expiresIn: `${this.configService.get<number>('jwt.expiresIn')}s`,
+        expiresIn: '15m', // Short-lived access token
       },
     );
+  }
+
+  private generateRefreshToken(cognitoSub: string, email: string): string {
+    return this.jwtService.sign(
+      {
+        sub: cognitoSub,
+        email,
+        type: 'refresh',
+      },
+      {
+        expiresIn: '7d', // Long-lived refresh token
+      },
+    );
+  }
+
+  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    try {
+      // Verify refresh token
+      const payload = this.jwtService.verify(refreshToken);
+
+      if (payload.type !== 'refresh') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+
+      // Validate user still exists
+      const user = await this.userService.findByCognitoSub(payload.sub);
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      // Generate new tokens
+      const newAccessToken = this.generateAccessToken(payload.sub, payload.email);
+      const newRefreshToken = this.generateRefreshToken(payload.sub, payload.email);
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
   }
 
   async validateUser(cognitoSub: string): Promise<User | null> {

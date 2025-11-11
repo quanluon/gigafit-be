@@ -4,7 +4,8 @@ import { ApiResponse as ApiResponseType } from '../../common/interfaces';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { AuthResponseDto } from './dto/auth-response.dto';
+import { AuthResponseDto, RefreshResponseDto } from './dto/auth-response.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { BaseController } from '../../common';
 
 @ApiTags('auth')
@@ -26,5 +27,14 @@ export class AuthController extends BaseController {
   async login(@Body() loginDto: LoginDto): Promise<ApiResponseType<AuthResponseDto>> {
     const result = await this.authService.login(loginDto);
     return this.success(result, 'User logged in successfully');
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
+  async refresh(
+    @Body() refreshTokenDto: RefreshTokenDto,
+  ): Promise<ApiResponseType<RefreshResponseDto>> {
+    const tokens = await this.authService.refreshToken(refreshTokenDto.refreshToken);
+    return this.success(tokens, 'Token refreshed successfully');
   }
 }
