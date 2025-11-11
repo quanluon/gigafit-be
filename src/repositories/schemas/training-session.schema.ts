@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { DayOfWeek, SessionStatus } from '../../common/enums';
 
+@Schema({ _id: false })
 export class ExerciseSet {
   @Prop({ required: true })
   reps!: number;
@@ -10,13 +11,18 @@ export class ExerciseSet {
   weight!: number;
 }
 
+const ExerciseSetSchema = SchemaFactory.createForClass(ExerciseSet);
+
+@Schema({ _id: false })
 export class ExerciseLog {
   @Prop({ required: true })
   exerciseId!: string;
 
-  @Prop({ type: [ExerciseSet], required: true })
+  @Prop({ type: [ExerciseSetSchema], required: true })
   sets!: ExerciseSet[];
 }
+
+const ExerciseLogSchema = SchemaFactory.createForClass(ExerciseLog);
 
 @Schema({ timestamps: true })
 export class TrainingSession extends Document {
@@ -35,7 +41,7 @@ export class TrainingSession extends Document {
   @Prop()
   endTime?: Date;
 
-  @Prop({ type: [ExerciseLog], default: [] })
+  @Prop({ type: [ExerciseLogSchema], default: [] })
   exercises!: ExerciseLog[];
 
   @Prop({ type: String, enum: SessionStatus, required: true })

@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { Translatable } from '../../common/interfaces';
 import { DayOfWeek, ExperienceLevel, Goal } from '../../common';
+import { ExerciseVideoDatabase } from './exercise-video-database';
+import { ExerciseRepository } from '../../repositories';
 
 interface GeneratePlanRequest {
   goal: Goal;
@@ -35,7 +37,10 @@ interface GeneratedPlan {
 export class AIService {
   private openai: OpenAI;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly exerciseRepository: ExerciseRepository,
+  ) {
     const apiKey = this.configService.get<string>('ai.openai.apiKey');
     this.openai = new OpenAI({ apiKey });
   }
@@ -63,7 +68,7 @@ export class AIService {
       const content = completion.choices[0].message.content || '{}';
       const plan = JSON.parse(content) as GeneratedPlan;
 
-      return this.validateAndEnhancePlan(plan, request.scheduleDays);
+      return await this.validateAndEnhancePlan(plan, request.scheduleDays);
     } catch (error) {
       // Fallback to template-based generation if AI fails
       Logger.error(`Failed to generate workout plan: ${JSON.stringify(error)}`);
@@ -91,20 +96,35 @@ export class AIService {
           "exercises": [
             {
               "name": { "en": "Bench Press", "vi": "Đẩy ngực" },
-              "description": { "en": "A compound chest exercise", "vi": "Bài tập compound phát triển cơ ngực" },
+              "description": { "en": "A compound chest exercise targeting the pectorals", "vi": "Bài tập compound phát triển cơ ngực" },
               "sets": 4,
               "reps": "8-10",
-              "videoUrl": "https://www.youtube.com/watch?v=rT7DgCr-3pg"
+              "videoUrl": ""
             }
           ]
         }
       ]
     }
 
-    Include 4-6 exercises per day. Ensure proper muscle group distribution and recovery.`;
+    IMPORTANT:
+    - Include 4-6 exercises per day
+    - Ensure proper muscle group distribution and recovery
+    - Use common exercise names (e.g., "Bench Press", "Squat", "Deadlift")
+    - videoUrl should be empty string "" (we will fill this automatically)
+    - Focus on exercise quality over quantity
+    
+    Common exercises to choose from:
+    Chest: Bench Press, Incline Press, Dumbbell Fly, Push-ups
+    Back: Deadlift, Pull-ups, Barbell Row, Lat Pulldown
+    Legs: Squat, Leg Press, Lunges, Leg Curl
+    Shoulders: Overhead Press, Lateral Raise, Front Raise
+    Arms: Bicep Curl, Tricep Extension, Hammer Curl, Dips`;
   }
 
-  private validateAndEnhancePlan(plan: GeneratedPlan, scheduleDays: DayOfWeek[]): GeneratedPlan {
+  private async validateAndEnhancePlan(
+    plan: GeneratedPlan,
+    scheduleDays: DayOfWeek[],
+  ): Promise<GeneratedPlan> {
     // Ensure plan includes all requested days
     const planDays = plan.schedule.map((day) => day.dayOfWeek);
     const missingDays = scheduleDays.filter((day) => !planDays.includes(day));
@@ -114,16 +134,39 @@ export class AIService {
       plan.schedule.push(this.createDefaultWorkout(day));
     }
 
-    // Ensure YouTube URLs are valid
+    // Find and assign proper video URLs from database or fallback
     for (const day of plan.schedule) {
       for (const exercise of day.exercises) {
-        if (!exercise.videoUrl.includes('youtube.com')) {
-          exercise.videoUrl = 'https://www.youtube.com/watch?v=example';
+        // Try to find from MongoDB database first
+        let videoUrl = await this.findVideoFromDatabase(exercise.name.en);
+
+        // Fallback to static database if not found
+        if (!videoUrl) {
+          videoUrl =
+            ExerciseVideoDatabase.findVideo(exercise.name.en) ||
+            ExerciseVideoDatabase.findVideo(exercise.name.vi);
         }
+
+        exercise.videoUrl = videoUrl;
+
+        Logger.debug(`Matched exercise "${exercise.name.en}" to video: ${videoUrl}`);
       }
     }
 
     return plan;
+  }
+
+  /**
+   * Find video URL from MongoDB exercise database
+   */
+  private async findVideoFromDatabase(exerciseName: string): Promise<string | null> {
+    try {
+      const exercise = await this.exerciseRepository.findBestMatch(exerciseName);
+      return exercise?.videoUrl || null;
+    } catch (error) {
+      Logger.error(`Failed to find exercise in database for "${exerciseName}":`, error);
+      return null;
+    }
   }
 
   private generateFallbackPlan(request: GeneratePlanRequest): GeneratedPlan {

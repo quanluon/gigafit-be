@@ -6,12 +6,14 @@ import { TrainingSession, TrainingSessionSchema } from './schemas/training-sessi
 import { Award, AwardSchema } from './schemas/award.schema';
 import { WeightLog, WeightLogSchema } from './schemas/weight-log.schema';
 import { MealPlan, MealPlanSchema } from './schemas/meal-plan.schema';
+import { Exercise, ExerciseSchema } from './schemas/exercise.schema';
 import { UserRepository } from './user.repository';
 import { WorkoutRepository } from './workout.repository';
 import { TrainingSessionRepository } from './training-session.repository';
 import { AwardRepository } from './award.repository';
 import { WeightLogRepository } from './weight-log.repository';
 import { MealPlanRepository } from './meal-plan.repository';
+import { ExerciseRepository } from './exercise.repository';
 
 const schemas = [
   { name: User.name, schema: UserSchema },
@@ -20,6 +22,7 @@ const schemas = [
   { name: Award.name, schema: AwardSchema },
   { name: WeightLog.name, schema: WeightLogSchema },
   { name: MealPlan.name, schema: MealPlanSchema },
+  { name: Exercise.name, schema: ExerciseSchema },
 ];
 
 const repositories = [
@@ -29,6 +32,7 @@ const repositories = [
   AwardRepository,
   WeightLogRepository,
   MealPlanRepository,
+  ExerciseRepository,
 ];
 
 @Global()

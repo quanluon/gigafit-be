@@ -1,6 +1,14 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { databaseConfig, redisConfig, awsConfig, jwtConfig, aiConfig } from './config';
+import { ScheduleModule } from '@nestjs/schedule';
+import {
+  databaseConfig,
+  redisConfig,
+  awsConfig,
+  jwtConfig,
+  aiConfig,
+  crawlerConfig,
+} from './config';
 import { APP_FILTER } from '@nestjs/core';
 import { HttpExceptionFilter } from './common';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
@@ -14,13 +22,15 @@ import { TrainingModule } from './modules/training/training.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { MealModule } from './modules/meal/meal.module';
 import { AIModule } from './modules/ai/ai.module';
+import { CrawlerModule } from './modules/crawler/crawler.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, redisConfig, awsConfig, jwtConfig, aiConfig],
+      load: [databaseConfig, redisConfig, awsConfig, jwtConfig, aiConfig, crawlerConfig],
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     RepositoryModule,
     HealthModule,
@@ -31,6 +41,7 @@ import { AIModule } from './modules/ai/ai.module';
     AnalyticsModule,
     MealModule,
     AIModule,
+    CrawlerModule,
   ],
   providers: [
     {
