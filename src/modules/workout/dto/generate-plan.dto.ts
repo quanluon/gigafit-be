@@ -1,4 +1,4 @@
-import { DayOfWeek, ExperienceLevel, Goal } from '@/common/enums';
+import { DayOfWeek, ExperienceLevel, Goal } from 'src/common/enums';
 import { Type } from 'class-transformer';
 import { IsArray, IsEnum, IsNumber, IsOptional } from 'class-validator';
 

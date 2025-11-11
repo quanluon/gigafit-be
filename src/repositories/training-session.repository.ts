@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BaseRepository } from '@/common/base';
+import { BaseRepository } from 'src/common/base';
 import { TrainingSession } from './schemas/training-session.schema';
-import { SessionStatus } from '@/common/enums';
+import { SessionStatus } from 'src/common/enums';
 
 @Injectable()
 export class TrainingSessionRepository extends BaseRepository<TrainingSession> {

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { DayOfWeek, SessionStatus } from '@/common/enums';
+import { DayOfWeek, SessionStatus } from 'src/common/enums';
 
 export class ExerciseSet {
   @Prop({ required: true })

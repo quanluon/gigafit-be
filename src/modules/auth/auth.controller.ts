@@ -1,11 +1,11 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiResponse as ApiResponseType } from '@/common/interfaces';
+import { ApiResponse as ApiResponseType } from 'src/common/interfaces';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { BaseController } from '@/common';
+import { BaseController } from 'src/common';
 
 @ApiTags('auth')
 @Controller('auth')

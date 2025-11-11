@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { TrainingSessionRepository } from '@/repositories';
 import { TrainingSession } from '@/repositories';
-import { SessionStatus, DayOfWeek } from '@/common/enums';
+import { SessionStatus, DayOfWeek } from 'src/common/enums';
 import { StartSessionDto } from './dto/start-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { LogExerciseDto } from './dto/log-exercise.dto';

@@ -3,7 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { WorkoutService } from './workout.service';
 import { WorkoutRepository } from '@/repositories';
 import { AIService } from '../ai/ai.service';
-import { Goal, ExperienceLevel, DayOfWeek } from '@/common/enums';
+import { Goal, ExperienceLevel, DayOfWeek } from 'src/common/enums';
 
 describe('WorkoutService', () => {
   let service: WorkoutService;

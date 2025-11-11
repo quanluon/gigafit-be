@@ -1,5 +1,5 @@
 import { IsEnum, IsArray, IsOptional, IsBoolean } from 'class-validator';
-import { DayOfWeek } from '@/common/enums';
+import { DayOfWeek } from 'src/common/enums';
 import { Type } from 'class-transformer';
 
 export class GenerateMealPlanDto {
