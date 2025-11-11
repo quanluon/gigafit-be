@@ -2,7 +2,7 @@ import { Controller, Get, Patch, Body, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BaseController } from 'src/common/base';
 import { ApiResponse as ApiResponseType } from 'src/common/interfaces';
-import { User } from '@/repositories';
+import { User } from 'src/repositories';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

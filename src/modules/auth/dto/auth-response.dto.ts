@@ -1,4 +1,4 @@
-import { User } from '@/repositories';
+import { User } from 'src/repositories';
 
 export class AuthResponseDto {
   accessToken!: string;

@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BaseController } from 'src/common/base';
 import { ApiResponse as ApiResponseType } from 'src/common/interfaces';
-import { MealPlan } from '@/repositories';
+import { MealPlan } from 'src/repositories';
 import { MealService } from './meal.service';
 import { GenerateMealPlanDto } from './dto/generate-meal-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

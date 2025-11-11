@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BaseController } from 'src/common/base';
 import { ApiResponse as ApiResponseType } from 'src/common/interfaces';
 import { SessionStatus } from 'src/common/enums';
-import { TrainingSession } from '@/repositories';
+import { TrainingSession } from 'src/repositories';
 import { TrainingService } from './training.service';
 import { StartSessionDto } from './dto/start-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';

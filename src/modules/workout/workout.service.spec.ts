@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { WorkoutService } from './workout.service';
-import { WorkoutRepository } from '@/repositories';
+import { WorkoutRepository } from 'src/repositories';
 import { AIService } from '../ai/ai.service';
 import { Goal, ExperienceLevel, DayOfWeek } from 'src/common/enums';
 

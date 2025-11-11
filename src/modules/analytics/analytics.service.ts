@@ -5,7 +5,7 @@ import {
   WeightLogRepository,
   Award,
   WeightLog,
-} from '@/repositories';
+} from 'src/repositories';
 import { SessionStatus } from 'src/common/enums';
 
 interface WeightHistory {
