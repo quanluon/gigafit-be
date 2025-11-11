@@ -1,6 +1,6 @@
 import { IsEmail, IsString, IsEnum, IsNumber, IsArray, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Goal, ExperienceLevel, DayOfWeek, ActivityLevel, Gender } from 'src/common/enums';
+import { Goal, ExperienceLevel, DayOfWeek, ActivityLevel, Gender } from '../../../common/enums';
 
 export class CreateUserDto {
   @IsEmail()

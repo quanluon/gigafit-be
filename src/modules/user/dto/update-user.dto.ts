@@ -1,5 +1,5 @@
 import { IsEnum, IsNumber, IsArray, IsOptional, Min } from 'class-validator';
-import { Goal, ExperienceLevel, DayOfWeek, ActivityLevel, Gender } from 'src/common/enums';
+import { Goal, ExperienceLevel, DayOfWeek, ActivityLevel, Gender } from '../../../common/enums';
 import { Type } from 'class-transformer';
 
 export class UpdateUserDto {

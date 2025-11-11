@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { Goal, ExperienceLevel, DayOfWeek, ActivityLevel, Gender } from 'src/common/enums';
+import { Goal, ExperienceLevel, DayOfWeek, ActivityLevel, Gender } from '../../common/enums';
 
 @Schema({ timestamps: true })
 export class User extends Document {

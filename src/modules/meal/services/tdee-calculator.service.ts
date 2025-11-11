@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Goal, ActivityLevel, Gender } from 'src/common/enums';
+import { Goal, ActivityLevel, Gender } from '../../../common/enums';
 
 interface TDEECalculation {
   bmr: number;

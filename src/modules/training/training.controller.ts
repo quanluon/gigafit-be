@@ -1,9 +1,9 @@
 import { Controller, Get, Post, Patch, Body, Param, Req, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { BaseController } from 'src/common/base';
-import { ApiResponse as ApiResponseType } from 'src/common/interfaces';
-import { SessionStatus } from 'src/common/enums';
-import { TrainingSession } from 'src/repositories';
+import { BaseController } from '../../common/base';
+import { ApiResponse as ApiResponseType } from '../../common/interfaces';
+import { SessionStatus } from '../../common/enums';
+import { TrainingSession } from '../../repositories';
 import { TrainingService } from './training.service';
 import { StartSessionDto } from './dto/start-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';

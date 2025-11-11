@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
-import { UserRepository } from 'src/repositories';
-import { Goal, ExperienceLevel, DayOfWeek } from 'src/common/enums';
-import { User } from 'src/repositories';
+import { UserRepository } from '../../repositories';
+import { Goal, ExperienceLevel, DayOfWeek } from '../../common/enums';
+import { User } from '../../repositories';
 
 describe('UserService', () => {
   let service: UserService;

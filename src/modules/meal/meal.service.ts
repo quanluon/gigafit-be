@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { MealPlanRepository, MealPlan } from 'src/repositories';
-import { UserRepository } from 'src/repositories';
+import { MealPlanRepository, MealPlan } from '../../repositories';
+import { UserRepository } from '../../repositories';
 import { TDEECalculatorService } from './services/tdee-calculator.service';
-import { DayOfWeek, MealType, Goal } from 'src/common/enums';
+import { DayOfWeek, MealType, Goal } from '../../common/enums';
 import { AIService } from '../ai/ai.service';
 
 @Injectable()

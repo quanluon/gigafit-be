@@ -8,7 +8,7 @@ import {
   GetUserCommand,
   AuthFlowType,
 } from '@aws-sdk/client-cognito-identity-provider';
-import { User } from 'src/repositories';
+import { User } from '../../repositories';
 import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';

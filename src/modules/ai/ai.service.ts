@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
-import { Translatable } from 'src/common/interfaces';
-import { DayOfWeek, ExperienceLevel, Goal } from 'src/common';
+import { Translatable } from '../../common/interfaces';
+import { DayOfWeek, ExperienceLevel, Goal } from '../../common';
 
 interface GeneratePlanRequest {
   goal: Goal;

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { WorkoutRepository, WorkoutPlan, WorkoutDay } from 'src/repositories';
-import { DayOfWeek } from 'src/common/enums';
+import { WorkoutRepository, WorkoutPlan, WorkoutDay } from '../../repositories';
+import { DayOfWeek } from '../../common/enums';
 import { AIService } from '../ai/ai.service';
 import { GeneratePlanDto } from './dto/generate-plan.dto';
 
