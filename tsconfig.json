@@ -22,11 +22,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
-      "@/*": ["src/*"],
-      "@common/*": ["src/common/*"],
-      "@modules/*": ["src/modules/*"],
-      "@config/*": ["src/config/*"],
-      "@repositories": ["src/repositories"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src/**/*"],

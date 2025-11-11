@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Req, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { BaseController } from '@common/base';
-import { ApiResponse as ApiResponseType } from '@common/interfaces';
+import { BaseController } from '@/common/base';
+import { ApiResponse as ApiResponseType } from '@/common/interfaces';
 import { Award, WeightLog } from '@/repositories';
 import { AnalyticsService } from './analytics.service';
 import { LogWeightDto } from './dto/log-weight.dto';

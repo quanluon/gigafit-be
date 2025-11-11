@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { DayOfWeek } from '@common/enums';
-import { Translatable } from '@common/interfaces';
+import { DayOfWeek } from '@/common/enums';
+import { Translatable } from '@/common/interfaces';
 
 export class Exercise {
   @Prop({ type: Object, required: true })

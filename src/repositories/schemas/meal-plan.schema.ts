@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { DayOfWeek, MealType } from '@common/enums';
-import { Translatable } from '@common/interfaces';
+import { DayOfWeek, MealType } from '@/common/enums';
+import { Translatable } from '@/common/interfaces';
 
 export class Macros {
   @Prop({ required: true })

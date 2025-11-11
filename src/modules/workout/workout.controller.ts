@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Req, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { BaseController } from '@common/base';
-import { ApiResponse as ApiResponseType } from '@common/interfaces';
-import { DayOfWeek } from '@common/enums';
+import { BaseController } from '@/common/base';
+import { ApiResponse as ApiResponseType } from '@/common/interfaces';
+import { DayOfWeek } from '@/common/enums';
 import { WorkoutPlan, WorkoutDay } from '@/repositories';
 import { WorkoutService } from './workout.service';
 import { GeneratePlanDto } from './dto/generate-plan.dto';

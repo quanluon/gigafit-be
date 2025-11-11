@@ -1,5 +1,5 @@
 import { IsEnum, IsString } from 'class-validator';
-import { DayOfWeek } from '@common/enums';
+import { DayOfWeek } from '@/common/enums';
 
 export class StartSessionDto {
   @IsString()

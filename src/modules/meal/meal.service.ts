@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { MealPlanRepository, MealPlan } from '@/repositories';
 import { UserRepository } from '@/repositories';
 import { TDEECalculatorService } from './services/tdee-calculator.service';
-import { DayOfWeek, MealType, Goal } from '@common/enums';
+import { DayOfWeek, MealType, Goal } from '@/common/enums';
 import { AIService } from '../ai/ai.service';
 
 @Injectable()
