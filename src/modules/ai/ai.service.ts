@@ -35,8 +35,8 @@ interface GeneratedPlan {
 
 @Injectable()
 export class AIService {
+  private readonly logger = new Logger(AIService.name);
   private openai: OpenAI;
-
   constructor(
     private readonly configService: ConfigService,
     private readonly exerciseRepository: ExerciseRepository,
@@ -71,7 +71,7 @@ export class AIService {
       return await this.validateAndEnhancePlan(plan, request.scheduleDays);
     } catch (error) {
       // Fallback to template-based generation if AI fails
-      Logger.error(`Failed to generate workout plan: ${JSON.stringify(error)}`);
+      this.logger.error(`Failed to generate workout plan: ${JSON.stringify(error)}`);
       return this.generateFallbackPlan(request);
     }
   }
@@ -134,39 +134,40 @@ export class AIService {
       plan.schedule.push(this.createDefaultWorkout(day));
     }
 
-    // Find and assign proper video URLs from database or fallback
+    // Collect all unique exercise names (avoid N+1 queries)
+    const allExerciseNames = new Set<string>();
     for (const day of plan.schedule) {
       for (const exercise of day.exercises) {
-        // Try to find from MongoDB database first
-        let videoUrl = await this.findVideoFromDatabase(exercise.name.en);
+        allExerciseNames.add(exercise.name.en);
+      }
+    }
 
-        // Fallback to static database if not found
-        if (!videoUrl) {
+    // Bulk fetch all exercises from database in ONE query
+    const exerciseMap = await this.exerciseRepository.findBulkByNames(Array.from(allExerciseNames));
+
+    // Assign video URLs using the fetched map (O(1) lookups)
+    for (const day of plan.schedule) {
+      for (const exercise of day.exercises) {
+        let videoUrl: string;
+
+        // Try MongoDB database first (from bulk query result)
+        const dbExercise = exerciseMap.get(exercise.name.en);
+        if (dbExercise) {
+          videoUrl = dbExercise.videoUrl;
+          Logger.debug(`[DB] Matched "${exercise.name.en}" to video: ${videoUrl}`);
+        } else {
+          // Fallback to static database
           videoUrl =
             ExerciseVideoDatabase.findVideo(exercise.name.en) ||
             ExerciseVideoDatabase.findVideo(exercise.name.vi);
+          Logger.debug(`[Static] Matched "${exercise.name.en}" to video: ${videoUrl}`);
         }
 
         exercise.videoUrl = videoUrl;
-
-        Logger.debug(`Matched exercise "${exercise.name.en}" to video: ${videoUrl}`);
       }
     }
 
     return plan;
-  }
-
-  /**
-   * Find video URL from MongoDB exercise database
-   */
-  private async findVideoFromDatabase(exerciseName: string): Promise<string | null> {
-    try {
-      const exercise = await this.exerciseRepository.findBestMatch(exerciseName);
-      return exercise?.videoUrl || null;
-    } catch (error) {
-      Logger.error(`Failed to find exercise in database for "${exerciseName}":`, error);
-      return null;
-    }
   }
 
   private generateFallbackPlan(request: GeneratePlanRequest): GeneratedPlan {

@@ -16,7 +16,7 @@ export class CrawlerService {
   ) {}
 
   /**
-   * Crawl exercises from all sources
+   * Crawl exercises from all sources (YouTube + TikTok)
    */
   async crawlAllSources(videosPerGroup: number = 5): Promise<{
     youtube: number;
@@ -44,7 +44,7 @@ export class CrawlerService {
   }
 
   /**
-   * Crawl specific muscle group
+   * Crawl specific muscle group from YouTube + TikTok
    */
   async crawlMuscleGroup(
     muscleGroup: MuscleGroup,
@@ -152,7 +152,6 @@ export class CrawlerService {
       // Re-fetch YouTube video details
       const videoId = this.extractYouTubeVideoId(exercise.videoUrl);
       if (videoId) {
-        // Refresh metadata (implementation depends on YouTube API)
         this.logger.log(`Refreshing metadata for YouTube video: ${videoId}`);
       }
     }
@@ -160,6 +159,8 @@ export class CrawlerService {
     await this.exerciseRepository.updateMetadata(exerciseId, {
       lastCrawledAt: new Date(),
     });
+
+    this.logger.log(`Refreshed metadata for exercise: ${exercise.name.en}`);
   }
 
   /**

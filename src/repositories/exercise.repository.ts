@@ -129,4 +129,45 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
     const result = await this.model.insertMany(exercises, { ordered: false });
     return result.length;
   }
+
+  /**
+   * Find multiple exercises by names in bulk (optimized for N+1 prevention)
+   */
+  async findBulkByNames(exerciseNames: string[]): Promise<Map<string, Exercise>> {
+    const lowerCaseNames = exerciseNames.map((name) => name.toLowerCase().trim());
+
+    // Single query to find all matching exercises
+    const exercises = await this.model
+      .find({
+        isActive: true,
+        keywords: { $in: lowerCaseNames.map((name) => new RegExp(name, 'i')) },
+      })
+      .sort({ usageCount: -1 })
+      .exec();
+
+    // Create a map for O(1) lookups
+    const exerciseMap = new Map<string, Exercise>();
+
+    for (const name of exerciseNames) {
+      const normalizedName = name.toLowerCase().trim();
+
+      // Find best match for this name
+      const match = exercises.find((ex) =>
+        ex.keywords.some(
+          (keyword) =>
+            keyword === normalizedName ||
+            keyword.includes(normalizedName) ||
+            normalizedName.includes(keyword),
+        ),
+      );
+
+      if (match) {
+        exerciseMap.set(name, match);
+        // Increment usage count for matched exercise
+        await this.model.updateOne({ _id: match._id }, { $inc: { usageCount: 1 } }).exec();
+      }
+    }
+
+    return exerciseMap;
+  }
 }

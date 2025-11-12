@@ -15,7 +15,7 @@ export class CrawlerController extends BaseController {
   }
 
   @Post('crawl/all')
-  @ApiOperation({ summary: 'Crawl exercises from all sources (Admin only)' })
+  @ApiOperation({ summary: 'Crawl exercises from all sources (YouTube + TikTok) - Admin only' })
   async crawlAll(
     @Query('videosPerGroup') videosPerGroup?: string,
   ): Promise<ApiResponse<{ youtube: number; tiktok: number; total: number }>> {
@@ -25,7 +25,9 @@ export class CrawlerController extends BaseController {
   }
 
   @Post('crawl/muscle-group/:muscleGroup')
-  @ApiOperation({ summary: 'Crawl exercises for specific muscle group (Admin only)' })
+  @ApiOperation({
+    summary: 'Crawl exercises for specific muscle group from YouTube + TikTok - Admin only',
+  })
   async crawlMuscleGroup(
     @Param('muscleGroup') muscleGroup: MuscleGroup,
     @Query('videosPerSource') videosPerSource?: string,
