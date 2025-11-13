@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { MealPlanScheduleSchema } from '../schemas/meal-plan.schema';
 import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
@@ -119,10 +120,8 @@ Return a JSON object with the structure:
     try {
       const result = await retryWithRateLimit(
         async () => {
-          // Use withStructuredOutput with a simple schema for meal schedule
-          const llmWithStructuredOutput = this.llm.withStructuredOutput(
-            WorkoutPlanSchema.pick({ schedule: true }),
-          );
+          // Use withStructuredOutput with MealPlanScheduleSchema
+          const llmWithStructuredOutput = this.llm.withStructuredOutput(MealPlanScheduleSchema);
 
           const promptTemplate = ChatPromptTemplate.fromTemplate(`
 You are a professional nutritionist and meal planner. Generate a detailed, nutritionally accurate meal plan.

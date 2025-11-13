@@ -309,7 +309,15 @@ export class MealService {
 
     try {
       const aiResponse = await this.aiService.generateMealPlan(prompt);
-      return aiResponse as MealPlan['schedule'];
+
+      // AI returns { schedule: DailyMealPlan[] }, extract the schedule
+      if (aiResponse && typeof aiResponse === 'object' && 'schedule' in aiResponse) {
+        return (aiResponse as { schedule: MealPlan['schedule'] }).schedule;
+      }
+
+      // If response doesn't have expected structure, log and fallback
+      Logger.warn('AI meal plan response missing schedule property, falling back to templates');
+      return this.generateMealSchedule(days, tdeeData);
     } catch (error) {
       Logger.error('AI meal plan generation failed, falling back to templates:', error);
       // Fallback to template-based generation
