@@ -23,6 +23,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { MealModule } from './modules/meal/meal.module';
 import { AIModule } from './modules/ai/ai.module';
 import { CrawlerModule } from './modules/crawler/crawler.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { CrawlerModule } from './modules/crawler/crawler.module';
     MealModule,
     AIModule,
     CrawlerModule,
+    QueueModule,
+    NotificationModule,
   ],
   providers: [
     {

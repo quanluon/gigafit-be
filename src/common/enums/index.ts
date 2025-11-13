@@ -6,3 +6,6 @@ export * from './language.enum';
 export * from './activity-level.enum';
 export * from './meal-type.enum';
 export * from './gender.enum';
+export * from './queue.enum';
+export * from './websocket.enum';
+export * from './ai-provider.enum';

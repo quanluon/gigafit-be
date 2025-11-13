@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Req, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, Query, UseGuards, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BaseController } from '../../common/base';
 import { ApiResponse as ApiResponseType } from '../../common/interfaces';
@@ -7,9 +7,15 @@ import { WorkoutPlan, WorkoutDay } from '../../repositories';
 import { WorkoutService } from './workout.service';
 import { GeneratePlanDto } from './dto/generate-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { QueueService } from '../queue/queue.service';
 
 interface RequestWithUser extends Request {
   user: { userId: string };
+}
+
+interface JobResponse {
+  jobId: string;
+  message: string;
 }
 
 @ApiTags('workout')
@@ -17,18 +23,38 @@ interface RequestWithUser extends Request {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class WorkoutController extends BaseController {
-  constructor(private readonly workoutService: WorkoutService) {
+  constructor(
+    private readonly workoutService: WorkoutService,
+    private readonly queueService: QueueService,
+  ) {
     super();
   }
 
   @Post('plan/generate')
-  @ApiOperation({ summary: 'Generate a new workout plan' })
+  @ApiOperation({ summary: 'Generate a new workout plan (async - returns job ID)' })
   async generatePlan(
     @Req() req: RequestWithUser,
     @Body() generatePlanDto: GeneratePlanDto,
-  ): Promise<ApiResponseType<WorkoutPlan>> {
-    const plan = await this.workoutService.generatePlan(req.user.userId, generatePlanDto);
-    return this.success(plan, 'Workout plan generated successfully');
+  ): Promise<ApiResponseType<JobResponse>> {
+    const job = await this.queueService.addWorkoutGenerationJob({
+      userId: req.user.userId,
+      ...generatePlanDto,
+    });
+
+    return this.success(
+      {
+        jobId: job.id?.toString() || '',
+        message: 'Workout plan generation started. You will be notified when complete.',
+      },
+      'Job created successfully',
+    );
+  }
+
+  @Get('plan/generate/status/:jobId')
+  @ApiOperation({ summary: 'Get workout plan generation job status' })
+  async getGenerationStatus(@Param('jobId') jobId: string): Promise<ApiResponseType<unknown>> {
+    const status = await this.queueService.getJobStatus(jobId);
+    return this.success(status);
   }
 
   @Get('plan')

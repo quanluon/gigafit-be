@@ -1,11 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MealController } from './meal.controller';
 import { MealService } from './meal.service';
 import { TDEECalculatorService } from './services/tdee-calculator.service';
 import { AIModule } from '../ai/ai.module';
+import { QueueModule } from '../queue/queue.module';
 
 @Module({
-  imports: [AIModule],
+  imports: [AIModule, forwardRef(() => QueueModule)],
   controllers: [MealController],
   providers: [MealService, TDEECalculatorService],
   exports: [MealService, TDEECalculatorService],

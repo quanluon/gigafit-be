@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, UseGuards, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BaseController } from '../../common/base';
 import { ApiResponse as ApiResponseType } from '../../common/interfaces';
@@ -6,6 +6,7 @@ import { MealPlan } from '../../repositories';
 import { MealService } from './meal.service';
 import { GenerateMealPlanDto } from './dto/generate-meal-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { QueueService } from '../queue/queue.service';
 
 interface RequestWithUser extends Request {
   user: { userId: string };
@@ -20,28 +21,50 @@ interface TDEEResponse {
   fat: number;
 }
 
+interface JobResponse {
+  jobId: string;
+  message: string;
+}
+
 @ApiTags('meal')
 @Controller('meal')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class MealController extends BaseController {
-  constructor(private readonly mealService: MealService) {
+  constructor(
+    private readonly mealService: MealService,
+    private readonly queueService: QueueService,
+  ) {
     super();
   }
 
   @Post('plan/generate')
-  @ApiOperation({ summary: 'Generate a meal plan' })
+  @ApiOperation({ summary: 'Generate a meal plan (async - returns job ID)' })
   async generateMealPlan(
     @Req() req: RequestWithUser,
     @Body() generateMealPlanDto: GenerateMealPlanDto,
-  ): Promise<ApiResponseType<MealPlan>> {
-    const plan = await this.mealService.generateMealPlan(
-      req.user.userId,
-      generateMealPlanDto.scheduleDays,
-      generateMealPlanDto.useAI,
-      generateMealPlanDto.fullWeek,
+  ): Promise<ApiResponseType<JobResponse>> {
+    const job = await this.queueService.addMealGenerationJob({
+      userId: req.user.userId,
+      scheduleDays: generateMealPlanDto.scheduleDays,
+      useAI: generateMealPlanDto.useAI,
+      fullWeek: generateMealPlanDto.fullWeek,
+    });
+
+    return this.success(
+      {
+        jobId: job.id?.toString() || '',
+        message: 'Meal plan generation started. You will be notified when complete.',
+      },
+      'Job created successfully',
     );
-    return this.success(plan, 'Meal plan generated successfully');
+  }
+
+  @Get('plan/generate/status/:jobId')
+  @ApiOperation({ summary: 'Get meal plan generation job status' })
+  async getGenerationStatus(@Param('jobId') jobId: string): Promise<ApiResponseType<unknown>> {
+    const status = await this.queueService.getMealJobStatus(jobId);
+    return this.success(status);
   }
 
   @Get('plan')
