@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExerciseVideoDatabase } from './exercise-video-database';
 import { ExerciseRepository } from '../../repositories';
-import { AIProvider, DayOfWeek } from '../../common/enums';
+import { AIProvider, AIProviderName, DayOfWeek } from '../../common/enums';
 import { OpenAIStrategy } from './strategies/openai.strategy';
 import { GeminiStrategy } from './strategies/gemini.strategy';
 import {
@@ -72,28 +72,63 @@ export class AIService {
   }
 
   /**
-   * Generate workout plan using current strategy
+   * Generate workout plan using current strategy with automatic fallback
    */
   async generateWorkoutPlan(request: GeneratePlanRequest): Promise<GeneratedPlan> {
     this.logger.log(
       `Generating workout plan using ${this.getCurrentProvider()} for user with goal: ${request.goal}`,
     );
 
-    // Delegate to current strategy
-    const plan = await this.strategy.generateWorkoutPlan(request);
+    try {
+      // Try current strategy
+      const plan = await this.strategy.generateWorkoutPlan(request);
+      return await this.validateAndEnhancePlan(plan, request.scheduleDays);
+    } catch (error) {
+      // Check if it's a quota/billing error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isQuotaError =
+        errorMessage.includes('InsufficientQuotaError') ||
+        errorMessage.includes('exceeded your current quota') ||
+        errorMessage.includes('billing');
 
-    // Enhance plan with video URLs (common post-processing)
-    return this.validateAndEnhancePlan(plan, request.scheduleDays);
+      if (isQuotaError) {
+        this.logger.warn(
+          `${this.getCurrentProvider()} quota exceeded. Falling back to alternative provider...`,
+        );
+        const fallbackPlan = await this.tryFallbackWorkout(request);
+        return await this.validateAndEnhancePlan(fallbackPlan, request.scheduleDays);
+      }
+
+      throw error;
+    }
   }
 
   /**
-   * Generate meal plan using current strategy
+   * Generate meal plan using current strategy with automatic fallback
    */
   async generateMealPlan(prompt: string): Promise<unknown> {
     this.logger.log(`Generating meal plan using ${this.getCurrentProvider()}`);
 
-    // Delegate to current strategy
-    return this.strategy.generateMealPlan(prompt);
+    try {
+      // Try current strategy
+      return await this.strategy.generateMealPlan(prompt);
+    } catch (error) {
+      // Check if it's a quota/billing error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isQuotaError =
+        errorMessage.includes('InsufficientQuotaError') ||
+        errorMessage.includes('exceeded your current quota') ||
+        errorMessage.includes('billing');
+
+      if (isQuotaError) {
+        this.logger.warn(
+          `${this.getCurrentProvider()} quota exceeded. Falling back to alternative provider...`,
+        );
+        return await this.tryFallbackMeal(prompt);
+      }
+
+      throw error;
+    }
   }
 
   /**
@@ -149,5 +184,53 @@ export class AIService {
     }
 
     return plan;
+  }
+
+  /**
+   * Try fallback strategy for workout plan generation
+   */
+  private async tryFallbackWorkout(request: GeneratePlanRequest): Promise<GeneratedPlan> {
+    const currentProvider = this.getCurrentProvider();
+    const fallbackProvider =
+      currentProvider === AIProviderName.OPENAI ? AIProvider.GEMINI : AIProvider.OPENAI;
+
+    this.logger.log(`🔄 Switching to ${fallbackProvider} as fallback...`);
+    const originalStrategy = this.strategy;
+
+    try {
+      this.setStrategy(fallbackProvider);
+      const plan = await this.strategy.generateWorkoutPlan(request);
+      this.logger.log(`✅ Successfully generated workout plan using ${fallbackProvider} fallback`);
+      this.strategy = originalStrategy;
+      return plan;
+    } catch (fallbackError) {
+      this.strategy = originalStrategy;
+      this.logger.error(`❌ Fallback to ${fallbackProvider} also failed:`, fallbackError);
+      throw fallbackError;
+    }
+  }
+
+  /**
+   * Try fallback strategy for meal plan generation
+   */
+  private async tryFallbackMeal(prompt: string): Promise<unknown> {
+    const currentProvider = this.getCurrentProvider();
+    const fallbackProvider =
+      currentProvider === AIProviderName.OPENAI ? AIProvider.GEMINI : AIProvider.OPENAI;
+
+    this.logger.log(`🔄 Switching to ${fallbackProvider} as fallback...`);
+    const originalStrategy = this.strategy;
+
+    try {
+      this.setStrategy(fallbackProvider);
+      const result = await this.strategy.generateMealPlan(prompt);
+      this.logger.log(`✅ Successfully generated meal plan using ${fallbackProvider} fallback`);
+      this.strategy = originalStrategy;
+      return result;
+    } catch (fallbackError) {
+      this.strategy = originalStrategy;
+      this.logger.error(`❌ Fallback to ${fallbackProvider} also failed:`, fallbackError);
+      throw fallbackError;
+    }
   }
 }

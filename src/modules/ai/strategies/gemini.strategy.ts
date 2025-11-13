@@ -2,9 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { StructuredOutputParser } from '@langchain/core/output_parsers';
 import { retryWithRateLimit } from '../../../common/utils/retry.util';
-import { DayOfWeek, Goal } from '../../../common';
+import { AIProviderName, DayOfWeek, Goal } from '../../../common';
 import {
   DEFAULT_AI_MODELS,
   AI_TEMPERATURE,
@@ -41,19 +40,22 @@ export class GeminiStrategy implements IAIStrategy {
    * Get provider name
    */
   getProviderName(): string {
-    return 'Gemini';
+    return AIProviderName.GEMINI;
   }
 
   /**
-   * Generate workout plan using Gemini with LangChain and Zod validation
+   * Generate workout plan using Gemini with structured output
    */
   async generateWorkoutPlan(request: GeneratePlanRequest): Promise<GeneratedPlan> {
     try {
-      // Create structured output parser with Zod schema
-      const parser = StructuredOutputParser.fromZodSchema(WorkoutPlanSchema);
+      const userRequirements = this.buildUserRequirements(request);
 
-      // Create prompt template
-      const promptTemplate = ChatPromptTemplate.fromTemplate(`
+      const result = await retryWithRateLimit(
+        async () => {
+          // Use withStructuredOutput for automatic JSON parsing
+          const llmWithStructuredOutput = this.llm.withStructuredOutput(WorkoutPlanSchema);
+
+          const promptTemplate = ChatPromptTemplate.fromTemplate(`
 You are a professional fitness trainer. Generate a workout plan based on the following user requirements:
 
 {userRequirements}
@@ -72,25 +74,26 @@ Common exercises to choose from:
 - Shoulders: Overhead Press, Lateral Raise, Front Raise
 - Arms: Bicep Curl, Tricep Extension, Hammer Curl, Dips
 
-IMPORTANT: Return ONLY valid JSON matching the schema below. No markdown formatting or extra text.
-
-{formatInstructions}
+Return a JSON object with the structure:
+{{
+  "schedule": [
+    {{
+      "dayOfWeek": "monday",
+      "focus": {{ "en": "Chest & Triceps", "vi": "Ngực & Tay sau" }},
+      "exercises": [{{ "name": {{}}, "description": {{}}, "sets": 4, "reps": "8-10", "videoUrl": "" }}]
+    }}
+  ]
+}}
 `);
 
-      // Format user requirements
-      const userRequirements = this.buildUserRequirements(request);
+          const chain = promptTemplate.pipe(llmWithStructuredOutput);
 
-      // Generate with retry logic
-      const result = await retryWithRateLimit(
-        async () => {
-          const chain = promptTemplate.pipe(this.llm).pipe(parser);
-
-          const response = await chain.invoke({
+          // LangChain automatically parses JSON and validates with Zod - returns object, not string!
+          const validated = await chain.invoke({
             userRequirements,
-            formatInstructions: parser.getFormatInstructions(),
           });
 
-          return response as WorkoutPlanType;
+          return validated as WorkoutPlanType;
         },
         {
           maxAttempts: 5,
@@ -110,38 +113,35 @@ IMPORTANT: Return ONLY valid JSON matching the schema below. No markdown formatt
   }
 
   /**
-   * Generate meal plan using Gemini with LangChain
+   * Generate meal plan using Gemini with structured output
    */
   async generateMealPlan(prompt: string): Promise<unknown> {
     try {
       const result = await retryWithRateLimit(
         async () => {
+          // Use withStructuredOutput with a simple schema for meal schedule
+          const llmWithStructuredOutput = this.llm.withStructuredOutput(
+            WorkoutPlanSchema.pick({ schedule: true }),
+          );
+
           const promptTemplate = ChatPromptTemplate.fromTemplate(`
 You are a professional nutritionist and meal planner. Generate a detailed, nutritionally accurate meal plan.
 
 {userPrompt}
 
-IMPORTANT: Return ONLY valid JSON with a "schedule" property. No markdown formatting or extra text.
 Include bilingual names (English and Vietnamese) and precise macro calculations.
+Return a JSON object with a "schedule" property containing the meal plan.
 `);
 
-          const chain = promptTemplate.pipe(this.llm);
+          const chain = promptTemplate.pipe(llmWithStructuredOutput);
 
+          // LangChain automatically parses JSON and validates - returns object, not string!
           const response = await chain.invoke({
             userPrompt: prompt,
           });
 
-          // Parse JSON response (Gemini might include markdown formatting)
-          let content = response.content as string;
-
-          // Clean up markdown formatting if present
-          content = content
-            .replace(/```json\n?/g, '')
-            .replace(/```\n?/g, '')
-            .trim();
-
-          const parsed = JSON.parse(content);
-          return parsed.schedule;
+          // Response is already a parsed JSON object
+          return (response as { schedule: unknown }).schedule;
         },
         {
           maxAttempts: 5,
