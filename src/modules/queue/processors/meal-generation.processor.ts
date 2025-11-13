@@ -51,6 +51,12 @@ export class MealGenerationProcessor {
         message: 'Starting meal plan generation...',
       });
 
+      // Increment usage counter if AI was used
+      if (useAI) {
+        await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.MEAL);
+        this.logger.log(`Incremented meal AI generation usage for user ${userId}`);
+      }
+
       // Generate meal plan (this is the slow part)
       const plan: MealPlan = await this.mealService.generateMealPlan(
         userId,
@@ -69,12 +75,6 @@ export class MealGenerationProcessor {
 
       // Extract plan ID safely
       const planId = this.extractPlanId(plan);
-
-      // Increment usage counter if AI was used
-      if (useAI) {
-        await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.MEAL);
-        this.logger.log(`Incremented meal AI generation usage for user ${userId}`);
-      }
 
       // Notify completion
       await job.progress(JobProgress.COMPLETED);

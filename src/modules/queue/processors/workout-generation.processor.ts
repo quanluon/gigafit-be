@@ -57,6 +57,10 @@ export class WorkoutGenerationProcessor {
         message: 'Starting workout plan generation...',
       });
 
+      // Increment usage counter if AI was used
+      await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.WORKOUT);
+      this.logger.log(`Incremented workout AI generation usage for user ${userId}`);
+
       // Generate workout plan (this is the slow part)
       const plan: WorkoutPlan = await this.workoutService.generatePlan(userId, {
         goal,
@@ -77,12 +81,6 @@ export class WorkoutGenerationProcessor {
 
       // Extract plan ID safely
       const planId = this.extractPlanId(plan);
-
-      // Increment usage counter if AI was used
-      if (job.data.useAI) {
-        await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.WORKOUT);
-        this.logger.log(`Incremented workout AI generation usage for user ${userId}`);
-      }
 
       // Notify completion
       await job.progress(JobProgress.COMPLETED);
