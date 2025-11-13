@@ -107,13 +107,73 @@ export class QueueService {
   }
 
   /**
-   * Get all jobs for a user (optional - for history)
+   * Get all active jobs for a user across all queues
    */
-  async getUserJobs(userId: string, limit: number = 10): Promise<Job<WorkoutGenerationJobData>[]> {
-    const jobStates: BullJobStatus[] = ['completed', 'failed', 'active', 'waiting'];
-    const jobs = await this.workoutGenerationQueue.getJobs(jobStates);
+  async getUserActiveJobs(userId: string): Promise<
+    Array<{
+      jobId: string;
+      type: QueueName;
+      status: JobStatus;
+      progress: number;
+      message?: string;
+    }>
+  > {
+    const activeStates: BullJobStatus[] = ['active', 'waiting', 'delayed'];
+    const result: Array<{
+      jobId: string;
+      type: QueueName;
+      status: JobStatus;
+      progress: number;
+      message?: string;
+    }> = [];
 
-    return jobs.filter((job) => job.data.userId === userId).slice(0, limit);
+    // Get active workout jobs
+    const workoutJobs = await this.workoutGenerationQueue.getJobs(activeStates);
+    for (const job of workoutJobs) {
+      if (job.data.userId === userId) {
+        const state = await job.getState();
+        const progress = await job.progress();
+
+        result.push({
+          jobId: job.id?.toString() || '',
+          type: QueueName.WORKOUT_GENERATION,
+          status: this.mapBullStatusToJobStatus(state),
+          progress: typeof progress === 'number' ? progress : 0,
+          message: this.getProgressMessage(progress),
+        });
+      }
+    }
+
+    // Get active meal jobs
+    const mealJobs = await this.mealGenerationQueue.getJobs(activeStates);
+    for (const job of mealJobs) {
+      if (job.data.userId === userId) {
+        const state = await job.getState();
+        const progress = await job.progress();
+
+        result.push({
+          jobId: job.id?.toString() || '',
+          type: QueueName.MEAL_GENERATION,
+          status: this.mapBullStatusToJobStatus(state),
+          progress: typeof progress === 'number' ? progress : 0,
+          message: this.getProgressMessage(progress),
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get progress message based on progress value
+   */
+  private getProgressMessage(progress: number | Record<string, unknown>): string {
+    const progressNum = typeof progress === 'number' ? progress : 0;
+
+    if (progressNum >= 90) return 'Finalizing plan...';
+    if (progressNum >= 50) return 'Generating exercises...';
+    if (progressNum >= 10) return 'Analyzing your profile...';
+    return 'Starting generation...';
   }
 
   /**

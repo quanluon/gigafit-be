@@ -57,6 +57,13 @@ export class WorkoutController extends BaseController {
     return this.success(status);
   }
 
+  @Get('plan/generate/jobs')
+  @ApiOperation({ summary: 'Get all active generation jobs for current user' })
+  async getActiveJobs(@Req() req: RequestWithUser): Promise<ApiResponseType<unknown>> {
+    const jobs = await this.queueService.getUserActiveJobs(req.user.userId);
+    return this.success(jobs);
+  }
+
   @Get('plan')
   @ApiOperation({ summary: 'Get current week workout plan' })
   async getCurrentPlan(@Req() req: RequestWithUser): Promise<ApiResponseType<WorkoutPlan>> {
