@@ -7,6 +7,10 @@ export enum AIProvider {
   GEMINI = 'gemini',
 }
 
+/**
+ * AI Provider Name Constants
+ * String constants for AI provider names (used in logs, UI, etc.)
+ */
 export enum AIProviderName {
   OPENAI = 'OpenAI',
   GEMINI = 'Gemini',

@@ -21,7 +21,7 @@ export const ExerciseSchema = z.object({
   description: TranslatableSchema.describe('Exercise description in English and Vietnamese'),
   sets: z.number().int().min(1).max(10).describe('Number of sets (1-10)'),
   reps: z.string().describe('Repetitions (e.g., "8-10", "30 seconds")'),
-  videoUrl: z.string().url().or(z.literal('')).describe('YouTube video URL or empty string'),
+  videoUrl: z.string().describe('YouTube video URL or empty string (we will fill this)'),
 });
 
 /**
