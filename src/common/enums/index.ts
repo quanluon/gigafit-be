@@ -9,3 +9,4 @@ export * from './gender.enum';
 export * from './queue.enum';
 export * from './websocket.enum';
 export * from './ai-provider.enum';
+export * from './subscription-plan.enum';

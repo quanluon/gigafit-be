@@ -2,6 +2,29 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { Goal, ExperienceLevel, DayOfWeek, ActivityLevel, Gender } from '../../common/enums';
 
+// Nested subscription schema
+export class GenerationUsage {
+  @Prop({ type: Number, default: 0 })
+  used!: number;
+
+  @Prop({ type: Number, default: 3 })
+  limit!: number;
+}
+
+export class SubscriptionInfo {
+  @Prop({ type: String, default: 'free' })
+  plan!: string; // 'free', 'premium', 'enterprise'
+
+  @Prop({ type: Date, default: () => new Date() })
+  periodStart!: Date; // Start of current billing period
+
+  @Prop({ type: GenerationUsage, default: () => ({ used: 0, limit: 3 }) })
+  workoutGeneration!: GenerationUsage;
+
+  @Prop({ type: GenerationUsage, default: () => ({ used: 0, limit: 3 }) })
+  mealGeneration!: GenerationUsage;
+}
+
 @Schema({ timestamps: true })
 export class User extends Document {
   @Prop({ required: true, unique: true })
@@ -36,6 +59,18 @@ export class User extends Document {
 
   @Prop({ type: [String], enum: DayOfWeek, default: [] })
   scheduleDays!: DayOfWeek[];
+
+  // Subscription (nested structure)
+  @Prop({
+    type: SubscriptionInfo,
+    default: () => ({
+      plan: 'free',
+      periodStart: new Date(),
+      workoutGeneration: { used: 0, limit: 3 },
+      mealGeneration: { used: 0, limit: 3 },
+    }),
+  })
+  subscription!: SubscriptionInfo;
 
   @Prop({ type: Date })
   createdAt!: Date;

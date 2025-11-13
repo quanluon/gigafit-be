@@ -3,7 +3,15 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { MealService } from '../../meal/meal.service';
 import { NotificationGateway } from '../../notification/notification.gateway';
-import { DayOfWeek, QueueName, JobName, JobProgress, WebSocketEvent } from '../../../common/enums';
+import { SubscriptionService } from '../../user/services/subscription.service';
+import {
+  DayOfWeek,
+  QueueName,
+  JobName,
+  JobProgress,
+  WebSocketEvent,
+  GenerationType,
+} from '../../../common/enums';
 import { MealPlan } from '../../../repositories';
 
 export interface MealGenerationJobData {
@@ -25,6 +33,7 @@ export class MealGenerationProcessor {
   constructor(
     private readonly mealService: MealService,
     private readonly notificationGateway: NotificationGateway,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @Process(JobName.GENERATE_MEAL_PLAN)
@@ -60,6 +69,12 @@ export class MealGenerationProcessor {
 
       // Extract plan ID safely
       const planId = this.extractPlanId(plan);
+
+      // Increment usage counter if AI was used
+      if (useAI) {
+        await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.MEAL);
+        this.logger.log(`Incremented meal AI generation usage for user ${userId}`);
+      }
 
       // Notify completion
       await job.progress(JobProgress.COMPLETED);

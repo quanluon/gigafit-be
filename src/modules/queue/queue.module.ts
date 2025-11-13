@@ -8,6 +8,7 @@ import { QueueName } from '../../common/enums';
 import { WorkoutModule } from '../workout/workout.module';
 import { MealModule } from '../meal/meal.module';
 import { NotificationModule } from '../notification/notification.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { NotificationModule } from '../notification/notification.module';
     forwardRef(() => WorkoutModule),
     forwardRef(() => MealModule),
     NotificationModule,
+    UserModule,
   ],
   providers: [WorkoutGenerationProcessor, MealGenerationProcessor, QueueService],
   exports: [QueueService, BullModule],

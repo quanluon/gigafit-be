@@ -2,12 +2,13 @@ import { Controller, Get, Post, Body, Req, Query, UseGuards, Param } from '@nest
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BaseController } from '../../common/base';
 import { ApiResponse as ApiResponseType } from '../../common/interfaces';
-import { DayOfWeek } from '../../common/enums';
+import { DayOfWeek, GenerationType } from '../../common/enums';
 import { WorkoutPlan, WorkoutDay } from '../../repositories';
 import { WorkoutService } from './workout.service';
 import { GeneratePlanDto } from './dto/generate-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { QueueService } from '../queue/queue.service';
+import { SubscriptionGuard, GenerationTypeDecorator } from '../user/guards/subscription.guard';
 
 interface RequestWithUser extends Request {
   user: { userId: string };
@@ -31,6 +32,8 @@ export class WorkoutController extends BaseController {
   }
 
   @Post('plan/generate')
+  @UseGuards(SubscriptionGuard)
+  @GenerationTypeDecorator(GenerationType.WORKOUT)
   @ApiOperation({ summary: 'Generate a new workout plan (async - returns job ID)' })
   async generatePlan(
     @Req() req: RequestWithUser,

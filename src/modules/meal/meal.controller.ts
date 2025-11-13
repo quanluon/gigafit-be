@@ -2,11 +2,13 @@ import { Controller, Get, Post, Body, Req, UseGuards, Param } from '@nestjs/comm
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BaseController } from '../../common/base';
 import { ApiResponse as ApiResponseType } from '../../common/interfaces';
+import { GenerationType } from '../../common/enums';
 import { MealPlan } from '../../repositories';
 import { MealService } from './meal.service';
 import { GenerateMealPlanDto } from './dto/generate-meal-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { QueueService } from '../queue/queue.service';
+import { SubscriptionGuard, GenerationTypeDecorator } from '../user/guards/subscription.guard';
 
 interface RequestWithUser extends Request {
   user: { userId: string };
@@ -39,6 +41,8 @@ export class MealController extends BaseController {
   }
 
   @Post('plan/generate')
+  @UseGuards(SubscriptionGuard)
+  @GenerationTypeDecorator(GenerationType.MEAL)
   @ApiOperation({ summary: 'Generate a meal plan (async - returns job ID)' })
   async generateMealPlan(
     @Req() req: RequestWithUser,

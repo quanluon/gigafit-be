@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { WorkoutService } from '../../workout/workout.service';
 import { NotificationGateway } from '../../notification/notification.gateway';
+import { SubscriptionService } from '../../user/services/subscription.service';
 import {
   Goal,
   ExperienceLevel,
@@ -11,6 +12,7 @@ import {
   JobName,
   JobProgress,
   WebSocketEvent,
+  GenerationType,
 } from '../../../common/enums';
 import { WorkoutPlan } from '../../../repositories';
 
@@ -22,6 +24,7 @@ export interface WorkoutGenerationJobData {
   height?: number;
   weight?: number;
   targetWeight?: number;
+  useAI?: boolean;
 }
 
 interface WorkoutGenerationResult {
@@ -36,6 +39,7 @@ export class WorkoutGenerationProcessor {
   constructor(
     private readonly workoutService: WorkoutService,
     private readonly notificationGateway: NotificationGateway,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @Process(JobName.GENERATE_WORKOUT_PLAN)
@@ -73,6 +77,12 @@ export class WorkoutGenerationProcessor {
 
       // Extract plan ID safely
       const planId = this.extractPlanId(plan);
+
+      // Increment usage counter if AI was used
+      if (job.data.useAI) {
+        await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.WORKOUT);
+        this.logger.log(`Incremented workout AI generation usage for user ${userId}`);
+      }
 
       // Notify completion
       await job.progress(JobProgress.COMPLETED);
