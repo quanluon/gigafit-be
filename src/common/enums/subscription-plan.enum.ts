@@ -11,12 +11,12 @@ export enum GenerationType {
 
 export const SUBSCRIPTION_LIMITS = {
   [SubscriptionPlan.FREE]: {
-    workout: 3, // 3 workout AI generations per month
-    meal: 3, // 3 meal AI generations per month
+    workout: 2, // 2 workout AI generations per month
+    meal: 2, // 2 meal AI generations per month
   },
   [SubscriptionPlan.PREMIUM]: {
-    workout: 50, // 50 workout AI generations per month
-    meal: 50, // 50 meal AI generations per month
+    workout: 10, // 10 workout AI generations per month
+    meal: 10, // 10 meal AI generations per month
   },
   [SubscriptionPlan.ENTERPRISE]: {
     workout: -1, // Unlimited

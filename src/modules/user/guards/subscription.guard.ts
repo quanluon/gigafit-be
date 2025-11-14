@@ -48,8 +48,8 @@ export class SubscriptionGuard implements CanActivate {
     // Get the limit for user's subscription plan and generation type
     const plan = user.subscription?.plan || SubscriptionPlan.FREE;
     const limits = SUBSCRIPTION_LIMITS[plan as keyof typeof SUBSCRIPTION_LIMITS] || {
-      workout: 3,
-      meal: 3,
+      workout: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].workout,
+      meal: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].meal,
     };
 
     let used: number;

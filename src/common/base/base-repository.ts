@@ -1,4 +1,4 @@
-import { Document, FilterQuery, Model, UpdateQuery } from 'mongoose';
+import { Document, FilterQuery, Model, QueryOptions, UpdateQuery } from 'mongoose';
 
 export abstract class BaseRepository<T extends Document> {
   constructor(protected readonly model: Model<T>) {}
@@ -8,27 +8,28 @@ export abstract class BaseRepository<T extends Document> {
     return entity.save();
   }
 
-  async findById(id: string): Promise<T | null> {
-    return this.model.findById(id).exec();
+  async findById(id: string, options: QueryOptions<T> = {}): Promise<T | null> {
+    return this.model.findById(id, options?.projection, options).exec();
   }
 
-  async findOne(filter: FilterQuery<T>): Promise<T | null> {
-    return this.model.findOne(filter).exec();
+  async findOne(filter: FilterQuery<T>, options: QueryOptions<T> = {}): Promise<T | null> {
+    return this.model.findOne(filter, options?.projection, options).exec();
   }
 
-  async find(filter: FilterQuery<T> = {}): Promise<T[]> {
-    return this.model.find(filter).exec();
+  async find(filter: FilterQuery<T> = {}, options: QueryOptions<T> = {}): Promise<T[]> {
+    return this.model.find(filter, options?.projection, options).exec();
   }
 
   async findWithPagination(
     filter: FilterQuery<T>,
     page: number = 1,
     limit: number = 20,
+    options: QueryOptions<T> = {},
   ): Promise<{ data: T[]; total: number; page: number; limit: number; totalPages: number }> {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
-      this.model.find(filter).skip(skip).limit(limit).exec(),
-      this.model.countDocuments(filter).exec(),
+      this.model.find(filter, options?.projection, options).skip(skip).limit(limit).exec(),
+      this.model.countDocuments(filter, { strictQuery: options?.strictQuery }).exec(),
     ]);
 
     return {

@@ -3,6 +3,7 @@ import { UserRepository } from '../../repositories';
 import { User } from '../../repositories';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { SUBSCRIPTION_LIMITS, SubscriptionPlan } from 'src/common';
 
 @Injectable()
 export class UserService {
@@ -13,10 +14,26 @@ export class UserService {
   }
 
   async findById(id: string): Promise<User> {
-    const user = await this.userRepository.findById(id);
+    const user = await this.userRepository.findById(id, { lean: true });
     if (!user) {
       throw new NotFoundException('User not found');
     }
+    if (!user.subscription) {
+      const subscription = {
+        plan: SubscriptionPlan.FREE,
+        periodStart: new Date(),
+        workoutGeneration: { used: 0 },
+        mealGeneration: { used: 0 },
+      };
+      await this.userRepository.update(id, { subscription });
+      user.subscription = subscription;
+    }
+
+    const plan = user.subscription?.plan || SubscriptionPlan.FREE;
+
+    user.subscription.workoutGeneration.limit = SUBSCRIPTION_LIMITS[plan].workout;
+    user.subscription.mealGeneration.limit = SUBSCRIPTION_LIMITS[plan].meal;
+
     return user;
   }
 

@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import {
-  Goal,
-  ExperienceLevel,
-  DayOfWeek,
   ActivityLevel,
+  DayOfWeek,
+  ExperienceLevel,
   Gender,
+  Goal,
   Language,
   SubscriptionPlan,
 } from '../../common/enums';
@@ -15,8 +15,8 @@ export class GenerationUsage {
   @Prop({ type: Number, default: 0 })
   used!: number;
 
-  @Prop({ type: Number, default: 3 })
-  limit!: number;
+  @Prop({ type: Number, required: false })
+  limit?: number;
 }
 
 export class SubscriptionInfo {
@@ -26,10 +26,16 @@ export class SubscriptionInfo {
   @Prop({ type: Date, default: () => new Date() })
   periodStart!: Date; // Start of current billing period
 
-  @Prop({ type: GenerationUsage, default: () => ({ used: 0, limit: 3 }) })
+  @Prop({
+    type: GenerationUsage,
+    default: () => ({ used: 0 }),
+  })
   workoutGeneration!: GenerationUsage;
 
-  @Prop({ type: GenerationUsage, default: () => ({ used: 0, limit: 3 }) })
+  @Prop({
+    type: GenerationUsage,
+    default: () => ({ used: 0 }),
+  })
   mealGeneration!: GenerationUsage;
 }
 

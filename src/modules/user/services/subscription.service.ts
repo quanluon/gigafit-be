@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { GenerationType, SUBSCRIPTION_LIMITS, SubscriptionPlan } from '../../../common/enums';
 import { UserRepository } from '../../../repositories';
-import { SUBSCRIPTION_LIMITS, SubscriptionPlan, GenerationType } from '../../../common/enums';
 
 @Injectable()
 export class SubscriptionService {
@@ -63,10 +63,7 @@ export class SubscriptionService {
     }
 
     const plan = user.subscription?.plan || SubscriptionPlan.FREE;
-    const limits = SUBSCRIPTION_LIMITS[plan as keyof typeof SUBSCRIPTION_LIMITS] || {
-      workout: 3,
-      meal: 3,
-    };
+    const limits = SUBSCRIPTION_LIMITS[plan];
 
     let used: number;
     let limit: number;
