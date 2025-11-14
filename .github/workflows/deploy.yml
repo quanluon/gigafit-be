@@ -28,12 +28,12 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             quanluonluon/gigafit-api:latest
-            quanluonluon/gigafit-api:${{ github.sha }}
+            quanluonluon/gigafit-api:latest
           cache-from: type=registry,ref=quanluonluon/gigafit-api:latest
           cache-to: type=inline
 
