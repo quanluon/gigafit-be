@@ -58,27 +58,61 @@ export class AnalyticsService {
   }
 
   async getProgressStats(userId: string): Promise<ProgressStats> {
-    const allSessions = await this.trainingSessionRepository.findByUser(userId);
-    const completedSessions = allSessions.filter((s) => s.status === SessionStatus.COMPLETED);
+    const model = this.trainingSessionRepository.getModel();
 
-    let totalWorkoutTime = 0;
-    completedSessions.forEach((session) => {
-      if (session.startTime && session.endTime) {
-        const duration = session.endTime.getTime() - session.startTime.getTime();
-        totalWorkoutTime += duration;
-      }
-    });
+    // Use aggregation pipeline for better performance
+    const stats = await model.aggregate([
+      { $match: { userId } },
+      {
+        $facet: {
+          totalStats: [
+            {
+              $group: {
+                _id: null,
+                totalSessions: { $sum: 1 },
+                completedSessions: {
+                  $sum: {
+                    $cond: [{ $eq: ['$status', SessionStatus.COMPLETED] }, 1, 0],
+                  },
+                },
+              },
+            },
+          ],
+          completedSessionsStats: [
+            { $match: { status: SessionStatus.COMPLETED } },
+            {
+              $group: {
+                _id: null,
+                totalWorkoutTime: {
+                  $sum: {
+                    $subtract: ['$endTime', '$startTime'],
+                  },
+                },
+                count: { $sum: 1 },
+              },
+            },
+          ],
+        },
+      },
+    ]);
 
-    const averageWorkoutDuration =
-      completedSessions.length > 0 ? totalWorkoutTime / completedSessions.length : 0;
+    const totalStats = stats[0]?.totalStats[0] || {
+      totalSessions: 0,
+      completedSessions: 0,
+    };
+    const completedStats = stats[0]?.completedSessionsStats[0] || {
+      totalWorkoutTime: 0,
+      count: 0,
+    };
 
     const currentStreak = await this.calculateStreak(userId);
 
     return {
-      totalSessions: allSessions.length,
-      completedSessions: completedSessions.length,
-      totalWorkoutTime,
-      averageWorkoutDuration,
+      totalSessions: totalStats.totalSessions,
+      completedSessions: totalStats.completedSessions,
+      totalWorkoutTime: completedStats.totalWorkoutTime || 0,
+      averageWorkoutDuration:
+        completedStats.count > 0 ? completedStats.totalWorkoutTime / completedStats.count : 0,
       currentStreak,
     };
   }
@@ -132,13 +166,40 @@ export class AnalyticsService {
     return Math.round((lowerWeights / weights.length) * 100);
   }
 
+  async checkIfNewPR(userId: string, exerciseId: string, weight: number): Promise<boolean> {
+    const model = this.trainingSessionRepository.getModel();
+
+    // Use aggregation to find the max weight for this exercise by this user
+    const result = await model.aggregate([
+      { $match: { userId, status: SessionStatus.COMPLETED } },
+      { $unwind: '$exercises' },
+      { $match: { 'exercises.exerciseId': exerciseId } },
+      { $unwind: '$exercises.sets' },
+      {
+        $group: {
+          _id: null,
+          maxWeight: { $max: '$exercises.sets.weight' },
+        },
+      },
+    ]);
+
+    if (result.length === 0) {
+      // First time doing this exercise - it's a PR!
+      return weight > 0;
+    }
+
+    const currentMaxWeight = result[0].maxWeight || 0;
+    return weight > currentMaxWeight;
+  }
+
   async createAward(
     userId: string,
     exerciseName: string,
+    exerciseId: string,
     value: number,
     type: string,
   ): Promise<Award> {
-    const percentile = await this.calculatePercentile(exerciseName, value);
+    const percentile = await this.calculatePercentile(exerciseId, value);
 
     return this.awardRepository.create({
       userId,

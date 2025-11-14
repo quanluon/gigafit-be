@@ -11,6 +11,10 @@ export class TrainingSessionRepository extends BaseRepository<TrainingSession> {
     super(trainingSessionModel);
   }
 
+  getModel(): Model<TrainingSession> {
+    return this.model;
+  }
+
   async findByUser(userId: string): Promise<TrainingSession[]> {
     return this.find({ userId });
   }

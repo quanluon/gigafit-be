@@ -1,14 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TrainingSessionRepository } from '../../repositories';
 import { TrainingSession } from '../../repositories';
-import { SessionStatus, DayOfWeek } from '../../common/enums';
+import { SessionStatus, DayOfWeek, EventName } from '../../common/enums';
 import { StartSessionDto } from './dto/start-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
 import { LogExerciseDto } from './dto/log-exercise.dto';
+import { ExerciseLoggedEvent } from '../analytics/events/exercise-logged.event';
 
 @Injectable()
 export class TrainingService {
-  constructor(private readonly trainingSessionRepository: TrainingSessionRepository) {}
+  constructor(
+    private readonly trainingSessionRepository: TrainingSessionRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async startSession(userId: string, startSessionDto: StartSessionDto): Promise<TrainingSession> {
     // Check if there's already an active session
@@ -122,6 +127,12 @@ export class TrainingService {
     if (!updatedSession) {
       throw new NotFoundException('Failed to log exercise');
     }
+
+    // Emit event for background award processing
+    this.eventEmitter.emit(
+      EventName.EXERCISE_LOGGED,
+      new ExerciseLoggedEvent(userId, sessionId, logExerciseDto.exercises),
+    );
 
     return updatedSession;
   }

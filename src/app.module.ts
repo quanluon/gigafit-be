@@ -1,6 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import {
   databaseConfig,
   redisConfig,
@@ -33,6 +34,7 @@ import { NotificationModule } from './modules/notification/notification.module';
       load: [databaseConfig, redisConfig, awsConfig, jwtConfig, aiConfig, crawlerConfig],
     }),
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     DatabaseModule,
     RepositoryModule,
     HealthModule,
