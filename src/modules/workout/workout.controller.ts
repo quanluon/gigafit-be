@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Req, Query, UseGuards, Param } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BaseController } from '../../common/base';
 import { ApiResponse as ApiResponseType } from '../../common/interfaces';
@@ -9,6 +20,7 @@ import { GeneratePlanDto } from './dto/generate-plan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { QueueService } from '../queue/queue.service';
 import { SubscriptionGuard, GenerationTypeDecorator } from '../user/guards/subscription.guard';
+import { CreateCustomPlanDto, UpdateCustomPlanDto } from './dto/custom-plan.dto';
 
 interface RequestWithUser extends Request {
   user: { userId: string };
@@ -97,5 +109,36 @@ export class WorkoutController extends BaseController {
   ): Promise<ApiResponseType<WorkoutDay | null>> {
     const workout = await this.workoutService.getWorkoutByDay(req.user.userId, day);
     return this.success(workout);
+  }
+
+  @Post('plan/custom')
+  @ApiOperation({ summary: 'Create or replace a custom workout plan' })
+  async createCustomPlan(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreateCustomPlanDto,
+  ): Promise<ApiResponseType<WorkoutPlan>> {
+    const plan = await this.workoutService.createCustomPlan(req.user.userId, dto);
+    return this.success(plan, 'Custom workout plan saved');
+  }
+
+  @Patch('plan/:planId')
+  @ApiOperation({ summary: 'Update an existing workout plan' })
+  async updatePlan(
+    @Req() req: RequestWithUser,
+    @Param('planId') planId: string,
+    @Body() dto: UpdateCustomPlanDto,
+  ): Promise<ApiResponseType<WorkoutPlan>> {
+    const plan = await this.workoutService.updatePlan(req.user.userId, planId, dto);
+    return this.success(plan, 'Workout plan updated');
+  }
+
+  @Delete('plan/:planId')
+  @ApiOperation({ summary: 'Delete an existing workout plan' })
+  async deletePlan(
+    @Req() req: RequestWithUser,
+    @Param('planId') planId: string,
+  ): Promise<ApiResponseType<{ success: boolean }>> {
+    const deleted = await this.workoutService.deletePlan(req.user.userId, planId);
+    return this.success({ success: deleted });
   }
 }

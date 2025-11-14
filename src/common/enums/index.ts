@@ -11,3 +11,4 @@ export * from './websocket.enum';
 export * from './ai-provider.enum';
 export * from './subscription-plan.enum';
 export * from './event-name.enum';
+export * from './plan-source.enum';

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, FilterQuery } from 'mongoose';
 import { BaseRepository } from '../common/base';
 import { Exercise, MuscleGroup, VideoSource } from './schemas/exercise.schema';
 
@@ -169,5 +169,42 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
     }
 
     return exerciseMap;
+  }
+
+  async findByIds(ids: string[]): Promise<Map<string, Exercise>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+    const exercises = await this.model
+      .find({
+        _id: { $in: ids },
+        isActive: true,
+      })
+      .exec();
+    const map = new Map<string, Exercise>();
+    exercises.forEach((exercise) => {
+      map.set(exercise._id!.toString(), exercise);
+    });
+    return map;
+  }
+
+  async searchExercises(options: {
+    search?: string;
+    muscleGroup?: MuscleGroup;
+    limit?: number;
+  }): Promise<Exercise[]> {
+    const { search, muscleGroup, limit = 20 } = options;
+    const filter: FilterQuery<Exercise> = { isActive: true };
+
+    if (muscleGroup) {
+      filter.muscleGroups = muscleGroup;
+    }
+
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      filter.$or = [{ 'name.en': regex }, { 'name.vi': regex }, { keywords: regex }];
+    }
+
+    return this.model.find(filter).sort({ usageCount: -1 }).limit(limit).exec();
   }
 }

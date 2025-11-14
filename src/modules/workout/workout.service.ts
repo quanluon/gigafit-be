@@ -1,13 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { WorkoutRepository, WorkoutPlan, WorkoutDay } from '../../repositories';
-import { DayOfWeek } from '../../common/enums';
+import { WorkoutRepository, WorkoutPlan, WorkoutDay, ExerciseRepository } from '../../repositories';
+import { DayOfWeek, PlanSource } from '../../common/enums';
 import { AIService } from '../ai/ai.service';
 import { GeneratePlanDto } from './dto/generate-plan.dto';
+import {
+  CreateCustomPlanDto,
+  WorkoutDayInputDto,
+  UpdateCustomPlanDto,
+} from './dto/custom-plan.dto';
+import { Exercise as WorkoutExercise } from '../../repositories/schemas/workout-plan.schema';
+import { Exercise as CatalogExercise } from '../../repositories/schemas/exercise.schema';
 
 @Injectable()
 export class WorkoutService {
   constructor(
     private readonly workoutRepository: WorkoutRepository,
+    private readonly exerciseRepository: ExerciseRepository,
     private readonly aiService: AIService,
   ) {}
 
@@ -26,6 +34,8 @@ export class WorkoutService {
       // Update existing plan
       const updatedPlan = await this.workoutRepository.update(existingPlan._id!.toString(), {
         schedule: generatedPlan.schedule,
+        source: PlanSource.AI,
+        title: 'Personalized Plan',
       });
       if (!updatedPlan) {
         throw new NotFoundException('Failed to update workout plan');
@@ -38,6 +48,8 @@ export class WorkoutService {
       userId,
       week,
       year,
+      source: PlanSource.AI,
+      title: 'Personalized Plan',
       schedule: generatedPlan.schedule,
     });
   }
@@ -71,14 +83,28 @@ export class WorkoutService {
   async updatePlan(
     userId: string,
     planId: string,
-    updateData: Partial<WorkoutPlan>,
+    updateData: UpdateCustomPlanDto,
   ): Promise<WorkoutPlan> {
     const plan = await this.workoutRepository.findById(planId);
     if (!plan || plan.userId !== userId) {
       throw new NotFoundException('Workout plan not found');
     }
 
-    const updatedPlan = await this.workoutRepository.update(planId, updateData);
+    const updatePayload: Partial<WorkoutPlan> = {};
+
+    if (updateData.title !== undefined) {
+      updatePayload.title = updateData.title;
+    }
+
+    if (updateData.schedule) {
+      updatePayload.schedule = await this.normalizeSchedule(updateData.schedule);
+    }
+
+    if (updateData.schedule && plan.source !== PlanSource.CUSTOM) {
+      updatePayload.source = PlanSource.CUSTOM;
+    }
+
+    const updatedPlan = await this.workoutRepository.update(planId, updatePayload);
     if (!updatedPlan) {
       throw new NotFoundException('Failed to update workout plan');
     }
@@ -100,16 +126,29 @@ export class WorkoutService {
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   }
 
-  async createCustomPlan(userId: string, planData: Partial<WorkoutPlan>): Promise<WorkoutPlan> {
+  async createCustomPlan(userId: string, planData: CreateCustomPlanDto): Promise<WorkoutPlan> {
     const now = new Date();
     const week = this.getWeekNumber(now);
     const year = now.getFullYear();
 
+    const normalizedSchedule = await this.normalizeSchedule(planData.schedule);
+
+    const basePayload: Partial<WorkoutPlan> = {
+      title: planData.title ?? 'Custom Plan',
+      source: PlanSource.CUSTOM,
+      schedule: normalizedSchedule,
+    };
+
     // Check if plan already exists for this week
     const existingPlan = await this.workoutRepository.findByUserAndWeek(userId, week, year);
     if (existingPlan) {
-      // Update existing plan
-      return this.updatePlan(userId, existingPlan._id!.toString(), planData);
+      const updatedPlan = await this.workoutRepository.update(existingPlan._id!.toString(), {
+        ...basePayload,
+      });
+      if (!updatedPlan) {
+        throw new NotFoundException('Failed to update workout plan');
+      }
+      return updatedPlan;
     }
 
     // Create new custom plan
@@ -117,8 +156,76 @@ export class WorkoutService {
       userId,
       week,
       year,
-      ...planData,
-      schedule: planData.schedule || [],
+      ...basePayload,
     } as WorkoutPlan);
+  }
+
+  private async normalizeSchedule(schedule: WorkoutDayInputDto[]): Promise<WorkoutDay[]> {
+    const mappedSchedule: WorkoutDay[] = schedule.map((day) => ({
+      dayOfWeek: day.dayOfWeek,
+      focus: day.focus,
+      exercises: day.exercises.map((exercise) => ({
+        exerciseId: exercise.exerciseId,
+        name: exercise.name,
+        description: exercise.description ?? { en: '', vi: '' },
+        sets: exercise.sets,
+        reps: exercise.reps,
+        videoUrl: exercise.videoUrl,
+      })),
+    }));
+
+    return this.hydrateExercises(mappedSchedule);
+  }
+
+  private async hydrateExercises(schedule: WorkoutDay[]): Promise<WorkoutDay[]> {
+    const exerciseIds = schedule
+      .flatMap((day) => day.exercises)
+      .map((exercise) => exercise.exerciseId)
+      .filter((id): id is string => Boolean(id));
+
+    const uniqueIds = Array.from(new Set(exerciseIds));
+    const exerciseMap = await this.exerciseRepository.findByIds(uniqueIds);
+
+    return schedule.map((day) => ({
+      ...day,
+      exercises: day.exercises.map((exercise) => {
+        if (!exercise.exerciseId) {
+          return this.ensureDescription(exercise);
+        }
+        const catalogExercise = exerciseMap.get(exercise.exerciseId);
+        if (!catalogExercise) {
+          return this.ensureDescription(exercise);
+        }
+        return this.mergeExerciseData(exercise, catalogExercise);
+      }),
+    }));
+  }
+
+  private ensureDescription(exercise: WorkoutExercise): WorkoutExercise {
+    return {
+      ...exercise,
+      description: exercise.description ?? { en: '', vi: '' },
+    };
+  }
+
+  private mergeExerciseData(
+    exercise: WorkoutExercise,
+    catalogExercise: CatalogExercise,
+  ): WorkoutExercise {
+    const fallbackDescription = catalogExercise.metadata?.description ?? '';
+    const hasCustomDescription =
+      exercise.description && (exercise.description.en || exercise.description.vi);
+
+    return {
+      ...exercise,
+      name: exercise.name ?? catalogExercise.name,
+      description: hasCustomDescription
+        ? exercise.description
+        : {
+            en: fallbackDescription,
+            vi: fallbackDescription,
+          },
+      videoUrl: exercise.videoUrl || catalogExercise.videoUrl,
+    };
   }
 }

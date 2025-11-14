@@ -26,6 +26,7 @@ import { AIModule } from './modules/ai/ai.module';
 import { CrawlerModule } from './modules/crawler/crawler.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { ExerciseModule } from './modules/exercise/exercise.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     CrawlerModule,
     QueueModule,
     NotificationModule,
+    ExerciseModule,
   ],
   providers: [
     {

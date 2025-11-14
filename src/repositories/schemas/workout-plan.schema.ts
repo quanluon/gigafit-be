@@ -1,9 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { DayOfWeek } from '../../common/enums';
+import { DayOfWeek, PlanSource } from '../../common/enums';
 import { Translatable } from '../../common/interfaces';
 
 export class Exercise {
+  @Prop({ type: String, ref: 'Exercise' })
+  exerciseId?: string;
+
   @Prop({ type: Object, required: true })
   name!: Translatable;
 
@@ -35,6 +38,12 @@ export class WorkoutDay {
 export class WorkoutPlan extends Document {
   @Prop({ required: true })
   userId!: string;
+
+  @Prop({ type: String, enum: PlanSource, default: PlanSource.AI })
+  source!: PlanSource;
+
+  @Prop()
+  title?: string;
 
   @Prop({ required: true })
   week!: number;
