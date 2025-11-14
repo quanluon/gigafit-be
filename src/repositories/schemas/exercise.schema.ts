@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { Translatable } from '../../common/interfaces';
 
 export enum VideoSource {
   YOUTUBE = 'youtube',
@@ -16,15 +17,6 @@ export enum MuscleGroup {
   CORE = 'core',
   CARDIO = 'cardio',
   FULL_BODY = 'full_body',
-}
-
-@Schema({ _id: false })
-export class ExerciseName {
-  @Prop({ required: true })
-  en!: string;
-
-  @Prop({ required: true })
-  vi!: string;
 }
 
 @Schema({ _id: false })
@@ -53,8 +45,8 @@ export class VideoMetadata {
 
 @Schema({ timestamps: true })
 export class Exercise extends Document {
-  @Prop({ type: ExerciseName, required: true })
-  name!: ExerciseName;
+  @Prop({ type: Object, required: true })
+  name!: Translatable;
 
   @Prop({ type: [String], required: true })
   keywords!: string[]; // For matching (lowercased)

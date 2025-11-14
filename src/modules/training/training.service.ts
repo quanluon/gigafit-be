@@ -175,4 +175,22 @@ export class TrainingService {
   async getSessionsByStatus(userId: string, status: SessionStatus): Promise<TrainingSession[]> {
     return this.trainingSessionRepository.findByUserAndStatus(userId, status);
   }
+
+  async getSessionsByMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<TrainingSession[]> {
+    // month is 1-12, convert to 0-11 for Date
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59); // Last day of month
+
+    return this.trainingSessionRepository.find({
+      userId,
+      startTime: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    });
+  }
 }

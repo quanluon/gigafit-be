@@ -68,13 +68,17 @@ export class WorkoutService {
     return workout || null;
   }
 
-  async updatePlan(userId: string, planId: string, schedule: WorkoutDay[]): Promise<WorkoutPlan> {
+  async updatePlan(
+    userId: string,
+    planId: string,
+    updateData: Partial<WorkoutPlan>,
+  ): Promise<WorkoutPlan> {
     const plan = await this.workoutRepository.findById(planId);
     if (!plan || plan.userId !== userId) {
       throw new NotFoundException('Workout plan not found');
     }
 
-    const updatedPlan = await this.workoutRepository.update(planId, { schedule });
+    const updatedPlan = await this.workoutRepository.update(planId, updateData);
     if (!updatedPlan) {
       throw new NotFoundException('Failed to update workout plan');
     }
@@ -94,5 +98,27 @@ export class WorkoutService {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
     const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  }
+
+  async createCustomPlan(userId: string, planData: Partial<WorkoutPlan>): Promise<WorkoutPlan> {
+    const now = new Date();
+    const week = this.getWeekNumber(now);
+    const year = now.getFullYear();
+
+    // Check if plan already exists for this week
+    const existingPlan = await this.workoutRepository.findByUserAndWeek(userId, week, year);
+    if (existingPlan) {
+      // Update existing plan
+      return this.updatePlan(userId, existingPlan._id!.toString(), planData);
+    }
+
+    // Create new custom plan
+    return this.workoutRepository.create({
+      userId,
+      week,
+      year,
+      ...planData,
+      schedule: planData.schedule || [],
+    } as WorkoutPlan);
   }
 }

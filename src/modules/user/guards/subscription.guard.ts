@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { User, UserRepository } from '../../../repositories';
-import { SUBSCRIPTION_LIMITS, GenerationType } from '../../../common/enums';
+import { SUBSCRIPTION_LIMITS, GenerationType, SubscriptionPlan } from '../../../common/enums';
 
 export const GENERATION_TYPE_KEY = 'generationType';
 export const GenerationTypeDecorator = (type: GenerationType): MethodDecorator =>
@@ -46,7 +46,7 @@ export class SubscriptionGuard implements CanActivate {
     await this.checkAndResetSubscriptionPeriod(user);
 
     // Get the limit for user's subscription plan and generation type
-    const plan = user.subscription?.plan || 'free';
+    const plan = user.subscription?.plan || SubscriptionPlan.FREE;
     const limits = SUBSCRIPTION_LIMITS[plan as keyof typeof SUBSCRIPTION_LIMITS] || {
       workout: 3,
       meal: 3,

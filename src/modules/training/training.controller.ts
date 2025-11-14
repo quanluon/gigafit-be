@@ -118,4 +118,19 @@ export class TrainingController extends BaseController {
       : await this.trainingService.getUserSessions(req.user.userId);
     return this.success(sessions);
   }
+
+  @Get('sessions/month/:year/:month')
+  @ApiOperation({ summary: 'Get training sessions for a specific month' })
+  async getSessionsByMonth(
+    @Req() req: RequestWithUser,
+    @Param('year') year: string,
+    @Param('month') month: string,
+  ): Promise<ApiResponseType<TrainingSession[]>> {
+    const sessions = await this.trainingService.getSessionsByMonth(
+      req.user.userId,
+      parseInt(year, 10),
+      parseInt(month, 10),
+    );
+    return this.success(sessions);
+  }
 }
