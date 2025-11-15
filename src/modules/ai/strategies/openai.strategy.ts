@@ -4,7 +4,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { MealPlanScheduleSchema } from '../schemas/meal-plan.schema';
 import { retryWithRateLimit } from '../../../common/utils/retry.util';
-import { AIProviderName, DayOfWeek, Goal } from '../../../common';
+import { AIProviderName, DayOfWeek, ExperienceLevel, Goal } from '../../../common';
 import {
   DEFAULT_AI_MODELS,
   AI_TEMPERATURE,
@@ -51,6 +51,7 @@ export class OpenAIStrategy implements IAIStrategy {
   async generateWorkoutPlan(request: GeneratePlanRequest): Promise<GeneratedPlan> {
     try {
       const userRequirements = this.buildUserRequirements(request);
+      const exerciseVolumeGuidance = this.getExerciseVolumeGuidance(request.experienceLevel);
 
       const result = await retryWithRateLimit(
         async () => {
@@ -63,7 +64,7 @@ You are a professional fitness trainer. Generate a workout plan based on the fol
 {userRequirements}
 
 Generate a workout plan with the following specifications:
-- Include 4-6 exercises per day
+- ${exerciseVolumeGuidance}
 - Ensure proper muscle group distribution and recovery
 - Use common exercise names (e.g., "Bench Press", "Squat", "Deadlift")
 - videoUrl should be empty string "" (we will fill this automatically)
@@ -190,6 +191,19 @@ Return a JSON object with a "schedule" property containing the meal plan.
     }
 
     return requirements;
+  }
+
+  private getExerciseVolumeGuidance(experienceLevel: ExperienceLevel): string {
+    switch (experienceLevel) {
+      case ExperienceLevel.BEGINNER:
+        return 'Include 5-6 exercises per day with balanced push/pull movements for beginners.';
+      case ExperienceLevel.INTERMEDIATE:
+        return 'Include 6-8 exercises per day, adding accessory work to challenge intermediate athletes.';
+      case ExperienceLevel.ADVANCED:
+        return 'Include 7-9 exercises per day with advanced variations and supersets for experienced athletes.';
+      default:
+        return 'Include 6-8 exercises per day tailored to the user’s experience level.';
+    }
   }
 
   /**
