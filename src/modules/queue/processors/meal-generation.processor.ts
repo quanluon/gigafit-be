@@ -19,6 +19,7 @@ export interface MealGenerationJobData {
   scheduleDays?: DayOfWeek[];
   useAI?: boolean;
   fullWeek?: boolean;
+  notes?: string;
 }
 
 interface MealGenerationResult {
@@ -38,7 +39,7 @@ export class MealGenerationProcessor {
 
   @Process(JobName.GENERATE_MEAL_PLAN)
   async handleGeneratePlan(job: Job<MealGenerationJobData>): Promise<MealGenerationResult> {
-    const { userId, scheduleDays, useAI, fullWeek } = job.data;
+    const { userId, scheduleDays, useAI, fullWeek, notes } = job.data;
 
     this.logger.log(`Processing meal plan generation for user ${userId}, job ${job.id}`);
 
@@ -63,6 +64,7 @@ export class MealGenerationProcessor {
         scheduleDays,
         useAI,
         fullWeek,
+        notes,
       );
 
       // Update progress: Finalizing

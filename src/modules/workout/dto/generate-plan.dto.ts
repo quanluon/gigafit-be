@@ -1,6 +1,6 @@
 import { DayOfWeek, ExperienceLevel, Goal } from '../../../common/enums';
 import { Type } from 'class-transformer';
-import { IsArray, IsEnum, IsNumber, IsOptional } from 'class-validator';
+import { IsArray, IsEnum, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class GeneratePlanDto {
   @IsEnum(Goal)
@@ -27,4 +27,14 @@ export class GeneratePlanDto {
   @IsNumber()
   @Type(() => Number)
   targetWeight?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  workoutTimeMinutes?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
 }

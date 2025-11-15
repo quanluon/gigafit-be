@@ -7,6 +7,7 @@ import { AIService } from '../ai/ai.service';
 
 @Injectable()
 export class MealService {
+  private readonly logger = new Logger(MealService.name);
   constructor(
     private readonly mealPlanRepository: MealPlanRepository,
     private readonly userRepository: UserRepository,
@@ -19,6 +20,7 @@ export class MealService {
     scheduleDays?: DayOfWeek[],
     useAI?: boolean,
     fullWeek?: boolean,
+    notes?: string,
   ): Promise<MealPlan> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -66,7 +68,7 @@ export class MealService {
 
     // Generate meal schedule
     const schedule = useAI
-      ? await this.generateMealScheduleWithAI(daysToGenerate, tdeeData, user.goal)
+      ? await this.generateMealScheduleWithAI(daysToGenerate, tdeeData, user.goal, notes)
       : this.generateMealSchedule(daysToGenerate, tdeeData);
 
     // Check if plan already exists for this week
@@ -304,22 +306,16 @@ export class MealService {
     days: DayOfWeek[],
     tdeeData: { targetCalories: number; protein: number; carbs: number; fat: number },
     goal: Goal,
+    notes?: string,
   ): Promise<MealPlan['schedule']> {
-    const prompt = this.buildMealPlanPrompt(days, tdeeData, goal);
+    const prompt = this.buildMealPlanPrompt(days, tdeeData, goal, notes);
 
     try {
       const aiResponse = await this.aiService.generateMealPlan(prompt);
-
-      // AI returns { schedule: DailyMealPlan[] }, extract the schedule
-      if (aiResponse && typeof aiResponse === 'object' && 'schedule' in aiResponse) {
-        return (aiResponse as { schedule: MealPlan['schedule'] }).schedule;
-      }
-
-      // If response doesn't have expected structure, log and fallback
-      Logger.warn('AI meal plan response missing schedule property, falling back to templates');
-      return this.generateMealSchedule(days, tdeeData);
+      this.logger.debug('AI meal plan generated successfully');
+      return aiResponse as MealPlan['schedule'];
     } catch (error) {
-      Logger.error('AI meal plan generation failed, falling back to templates:', error);
+      this.logger.error('AI meal plan generation failed, falling back to templates:', error);
       // Fallback to template-based generation
       return this.generateMealSchedule(days, tdeeData);
     }
@@ -329,6 +325,7 @@ export class MealService {
     days: DayOfWeek[],
     tdeeData: { targetCalories: number; protein: number; carbs: number; fat: number },
     goal: Goal,
+    notes?: string,
   ): string {
     const goalDescriptions = {
       [Goal.MUSCLE_GAIN]: 'building muscle mass with a caloric surplus',
@@ -356,6 +353,7 @@ export class MealService {
 6. Ensure daily totals match the target nutrition (±50 calories acceptable)
 7. Include variety across different days
 8. Consider meal timing for ${goal === Goal.MUSCLE_GAIN ? 'optimal muscle growth' : goal === Goal.WEIGHT_LOSS ? 'satiety and energy' : 'balanced nutrition'}
+${notes ? `9. Follow these user notes/preferences: ${notes}` : ''}
 
 **Output Format** (JSON):
 {

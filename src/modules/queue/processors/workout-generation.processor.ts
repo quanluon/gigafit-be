@@ -25,6 +25,8 @@ export interface WorkoutGenerationJobData {
   weight?: number;
   targetWeight?: number;
   useAI?: boolean;
+  workoutTimeMinutes?: number;
+  notes?: string;
 }
 
 interface WorkoutGenerationResult {
@@ -44,7 +46,17 @@ export class WorkoutGenerationProcessor {
 
   @Process(JobName.GENERATE_WORKOUT_PLAN)
   async handleGeneratePlan(job: Job<WorkoutGenerationJobData>): Promise<WorkoutGenerationResult> {
-    const { userId, goal, experienceLevel, scheduleDays, height, weight, targetWeight } = job.data;
+    const {
+      userId,
+      goal,
+      experienceLevel,
+      scheduleDays,
+      height,
+      weight,
+      targetWeight,
+      workoutTimeMinutes,
+      notes,
+    } = job.data;
 
     this.logger.log(`Processing workout generation for user ${userId}, job ${job.id}`);
 
@@ -69,6 +81,8 @@ export class WorkoutGenerationProcessor {
         height,
         weight,
         targetWeight,
+        workoutTimeMinutes,
+        notes,
       });
 
       // Update progress: Finalizing

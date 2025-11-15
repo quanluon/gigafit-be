@@ -1,14 +1,19 @@
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Injectable,
   Logger,
   SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import {
+  GenerationType,
+  SUBSCRIPTION_LIMITS,
+  SubscriptionPlan,
+  UNLIMITED_LIMIT,
+} from '../../../common/enums';
 import { User, UserRepository } from '../../../repositories';
-import { SUBSCRIPTION_LIMITS, GenerationType, SubscriptionPlan } from '../../../common/enums';
 
 export const GENERATION_TYPE_KEY = 'generationType';
 export const GenerationTypeDecorator = (type: GenerationType): MethodDecorator =>
@@ -67,7 +72,7 @@ export class SubscriptionGuard implements CanActivate {
     }
 
     // -1 means unlimited
-    if (limit === -1) {
+    if (limit === UNLIMITED_LIMIT) {
       return true;
     }
 

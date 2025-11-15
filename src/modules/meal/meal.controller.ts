@@ -53,6 +53,7 @@ export class MealController extends BaseController {
       scheduleDays: generateMealPlanDto.scheduleDays,
       useAI: generateMealPlanDto.useAI,
       fullWeek: generateMealPlanDto.fullWeek,
+      notes: generateMealPlanDto.notes,
     });
 
     return this.success(

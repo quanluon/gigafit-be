@@ -9,6 +9,8 @@ export enum GenerationType {
   MEAL = 'meal',
 }
 
+export const UNLIMITED_LIMIT = -1;
+
 export const SUBSCRIPTION_LIMITS = {
   [SubscriptionPlan.FREE]: {
     workout: 2, // 2 workout AI generations per month
@@ -19,7 +21,7 @@ export const SUBSCRIPTION_LIMITS = {
     meal: 10, // 10 meal AI generations per month
   },
   [SubscriptionPlan.ENTERPRISE]: {
-    workout: -1, // Unlimited
-    meal: -1, // Unlimited
+    workout: UNLIMITED_LIMIT, // Unlimited
+    meal: UNLIMITED_LIMIT, // Unlimited
   },
 };

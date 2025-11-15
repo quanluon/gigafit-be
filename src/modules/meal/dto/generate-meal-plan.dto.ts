@@ -1,4 +1,4 @@
-import { IsEnum, IsArray, IsOptional, IsBoolean } from 'class-validator';
+import { IsEnum, IsArray, IsOptional, IsBoolean, IsString, MaxLength } from 'class-validator';
 import { DayOfWeek } from '../../../common/enums';
 import { Type } from 'class-transformer';
 
@@ -17,4 +17,9 @@ export class GenerateMealPlanDto {
   @IsBoolean()
   @Type(() => Boolean)
   fullWeek?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
 }

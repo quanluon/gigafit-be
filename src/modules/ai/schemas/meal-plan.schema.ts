@@ -28,7 +28,7 @@ export const MacrosSchema = z.object({
  */
 export const MealItemSchema = z.object({
   name: TranslatableSchema.describe('Item name in English and Vietnamese'),
-  description: TranslatableSchema.optional().describe('Item description'),
+  description: TranslatableSchema.describe('Item description'),
   quantity: z.string().describe('Quantity (e.g., "200g", "1 cup", "2 pieces")'),
   macros: MacrosSchema.describe('Macros for this item'),
 });

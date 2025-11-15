@@ -162,7 +162,16 @@ Return a JSON object with a "schedule" property containing the meal plan.
    * Build user requirements string
    */
   private buildUserRequirements(request: GeneratePlanRequest): string {
-    const { goal, experienceLevel, scheduleDays, weight, height, targetWeight } = request;
+    const {
+      goal,
+      experienceLevel,
+      scheduleDays,
+      weight,
+      height,
+      targetWeight,
+      workoutTimeMinutes,
+      notes,
+    } = request;
 
     let requirements = `
 - Goal: ${goal}
@@ -172,6 +181,12 @@ Return a JSON object with a "schedule" property containing the meal plan.
     if (weight) requirements += `\n- Current Weight: ${weight}kg`;
     if (targetWeight) requirements += `\n- Target Weight: ${targetWeight}kg`;
     if (height) requirements += `\n- Height: ${height}cm`;
+    if (workoutTimeMinutes) {
+      requirements += `\n- Target Session Duration: ${workoutTimeMinutes} minutes (match workout volume to this duration)`;
+    }
+    if (notes) {
+      requirements += `\n- Additional Preferences: ${notes}`;
+    }
 
     return requirements;
   }
