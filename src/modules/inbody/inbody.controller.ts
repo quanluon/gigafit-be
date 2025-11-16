@@ -8,6 +8,7 @@ import { SubscriptionGuard, GenerationTypeDecorator } from '../user/guards/subsc
 import { GenerationType } from '../../common/enums';
 import { ProcessInbodyDto } from './dto/process-inbody.dto';
 import { ScanInbodyDto } from './dto/scan-inbody.dto';
+import { AnalyzeBodyPhotoDto } from './dto/analyze-body-photo.dto';
 import { ApiResponse as ApiResponseType } from '../../common/interfaces';
 import { InbodyResult } from '../../repositories/schemas';
 
@@ -102,5 +103,23 @@ export class InbodyController extends BaseController {
       takenAt,
     );
     return this.success(result, 'InBody scan processed successfully');
+  }
+
+  @Post('body-photo')
+  @UseGuards(SubscriptionGuard)
+  @GenerationTypeDecorator(GenerationType.BODY_PHOTO)
+  @ApiOperation({ summary: 'Analyze body photo to estimate body composition metrics' })
+  async analyzeBodyPhoto(
+    @Req() req: RequestWithUser,
+    @Body() dto: AnalyzeBodyPhotoDto,
+  ): Promise<ApiResponseType<InbodyResult>> {
+    const takenAt = dto.takenAt ? new Date(dto.takenAt) : undefined;
+    const result = await this.inbodyService.analyzeBodyPhoto(
+      req.user.userId,
+      dto.s3Url,
+      dto.originalFilename,
+      takenAt,
+    );
+    return this.success(result, 'Body photo analysis started');
   }
 }

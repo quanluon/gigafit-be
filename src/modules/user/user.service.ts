@@ -25,6 +25,7 @@ export class UserService {
         workoutGeneration: { used: 0 },
         mealGeneration: { used: 0 },
         inbodyScan: { used: 0 },
+        bodyPhotoScan: { used: 0 },
       };
       await this.userRepository.update(id, { subscription });
       user.subscription = subscription;
@@ -34,6 +35,17 @@ export class UserService {
 
     user.subscription.workoutGeneration.limit = SUBSCRIPTION_LIMITS[plan].workout;
     user.subscription.mealGeneration.limit = SUBSCRIPTION_LIMITS[plan].meal;
+    if (user.subscription.inbodyScan) {
+      user.subscription.inbodyScan.limit = SUBSCRIPTION_LIMITS[plan].inbody;
+    }
+    if (user.subscription.bodyPhotoScan) {
+      user.subscription.bodyPhotoScan.limit = SUBSCRIPTION_LIMITS[plan].bodyPhoto;
+    } else {
+      user.subscription.bodyPhotoScan = {
+        used: 0,
+        limit: SUBSCRIPTION_LIMITS[plan].bodyPhoto,
+      };
+    }
 
     return user;
   }

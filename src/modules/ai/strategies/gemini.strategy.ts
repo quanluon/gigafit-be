@@ -2,12 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MealPlanScheduleSchema } from '../schemas/meal-plan.schema';
 import { InbodyVisionSchema } from '../schemas/inbody-vision.schema';
 import { InbodyAnalysisSchema } from '../schemas/inbody-analysis.schema';
+import { BodyPhotoVisionSchema } from '../schemas/body-photo-vision.schema';
 import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { retryWithRateLimit } from '../../../common/utils/retry.util';
 import { AIProviderName, DayOfWeek, Goal } from '../../../common';
-import { InbodyMetricsSummary, Translatable } from '../../../common/interfaces';
+import { InbodyMetricsSummary, InbodyAnalysis } from '../../../common/interfaces';
 import {
   DEFAULT_AI_MODELS,
   AI_TEMPERATURE,
@@ -230,7 +231,7 @@ Return a JSON object with a "schedule" property containing the meal plan.
   async generateInbodyAnalysis(
     metrics: InbodyMetricsSummary,
     rawText?: string,
-  ): Promise<Translatable> {
+  ): Promise<InbodyAnalysis> {
     const metricsJson = JSON.stringify(metrics ?? {}, null, 2);
     const rawExcerpt = rawText ? rawText.slice(0, 1200) : 'N/A';
 
@@ -238,29 +239,39 @@ Return a JSON object with a "schedule" property containing the meal plan.
       const llmWithStructuredOutput = this.llm.withStructuredOutput(InbodyAnalysisSchema);
 
       const prompt = `
-Analyze InBody metrics. Return JSON with "en" and "vi" fields.
+Analyze InBody metrics and provide structured analysis in both English and Vietnamese.
 
 Metrics: ${metricsJson}
-Raw: ${rawExcerpt}
+Raw OCR text: ${rawExcerpt}
 
-For each (max 100 words):
-1. Body composition summary
-2. 3 key recommendations
-3. Training & nutrition advice
+IMPORTANT INSTRUCTIONS:
+- If metrics are zero or missing, ESTIMATE reasonable values based on typical body composition for reference
+- Always provide NUMBERS and ESTIMATIONS (even if approximate) so user can see and reference them
+- Use supportive, personal trainer tone - speak as system directly advising the user
 
-Supportive tone. Advise user directly.`;
+For each language, return JSON object with:
+1. "body_composition_summary": Summary including key metrics and ESTIMATED NUMBERS (even if approximate)
+2. "recommendations": Array of exactly 3 practical recommendations
+3. "training_nutrition_advice": Specific, actionable advice with numbers and examples
+
+Format: Each field should be concise but include specific numbers and estimates.`;
 
       const result = await llmWithStructuredOutput.invoke([{ role: 'user', content: prompt }]);
 
-      return {
-        en: result.en || 'Analysis unavailable.',
-        vi: result.vi || 'Không thể phân tích.',
-      };
+      return result;
     } catch (error) {
       this.logger.error('Failed to generate structured InBody analysis', error);
       return {
-        en: 'Analysis unavailable.',
-        vi: 'Không thể phân tích.',
+        en: {
+          body_composition_summary: 'Analysis unavailable.',
+          recommendations: [],
+          training_nutrition_advice: '',
+        },
+        vi: {
+          body_composition_summary: 'Không thể phân tích.',
+          recommendations: [],
+          training_nutrition_advice: '',
+        },
       };
     }
   }
@@ -293,37 +304,7 @@ Return JSON per schema. Include OCR text if readable.`;
       ]);
 
       // Convert to InbodyMetricsSummary, filtering out zero/missing values
-      const metrics: InbodyMetricsSummary = {};
-      if (response?.weight) {
-        metrics.weight = response.weight;
-      }
-      if (response?.skeletalMuscleMass) {
-        metrics.skeletalMuscleMass = response.skeletalMuscleMass;
-      }
-      if (response?.bodyFatMass) {
-        metrics.bodyFatMass = response.bodyFatMass;
-      }
-      if (response?.bodyFatPercent) {
-        metrics.bodyFatPercent = response.bodyFatPercent;
-      }
-      if (response?.bmi) {
-        metrics.bmi = response.bmi;
-      }
-      if (response?.visceralFatLevel) {
-        metrics.visceralFatLevel = response.visceralFatLevel;
-      }
-      if (response?.basalMetabolicRate) {
-        metrics.basalMetabolicRate = response.basalMetabolicRate;
-      }
-      if (response?.totalBodyWater) {
-        metrics.totalBodyWater = response.totalBodyWater;
-      }
-      if (response?.protein) {
-        metrics.protein = response.protein;
-      }
-      if (response?.minerals) {
-        metrics.minerals = response.minerals;
-      }
+      const metrics: InbodyMetricsSummary = { ...response };
 
       return {
         metrics,
@@ -331,6 +312,58 @@ Return JSON per schema. Include OCR text if readable.`;
       };
     } catch (error) {
       this.logger.error('Failed to analyze InBody image with Gemini Vision', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze body photo from URL using Gemini Vision to estimate body composition
+   */
+  async analyzeBodyPhoto(imageUrl: string): Promise<InbodyMetricsSummary> {
+    try {
+      const llmWithStructuredOutput = this.llm.withStructuredOutput(BodyPhotoVisionSchema);
+
+      const prompt = `Analyze this full-body photo to estimate comprehensive body composition metrics similar to InBody scan results.
+
+Estimate the following metrics:
+- Weight (kg)
+- Body fat percentage (%)
+- Skeletal muscle mass (kg)
+- Body fat mass (kg)
+- BMI (Body Mass Index)
+- Estimated height (cm)
+- Visceral fat level (1-59 scale)
+- Basal Metabolic Rate (BMR) in kcal/day
+- Total body water (kg)
+- Protein mass (kg)
+- Minerals mass (kg)
+
+Provide confidence score 0-100 for overall estimation accuracy.
+
+Note: These are estimates based on visual analysis. Actual values may vary. Use typical body composition ratios and formulas when needed.`;
+
+      // Gemini supports image URLs directly in the content
+      const response = await llmWithStructuredOutput.invoke([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: { url: imageUrl },
+            },
+          ],
+        },
+      ]);
+
+      // Convert to InbodyMetricsSummary, filtering out zero/missing values
+      const metrics: InbodyMetricsSummary = { ...response };
+
+      this.logger.log(`Body photo analysis completed. Confidence: ${response?.confidence || 0}%`);
+
+      return metrics;
+    } catch (error) {
+      this.logger.error('Failed to analyze body photo with Gemini Vision', error);
       throw error;
     }
   }

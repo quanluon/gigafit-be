@@ -1,5 +1,5 @@
 import { DayOfWeek, ExperienceLevel, Goal } from '../../../common';
-import { InbodyMetricsSummary, Translatable } from '../../../common/interfaces';
+import { InbodyMetricsSummary, InbodyAnalysis, Translatable } from '../../../common/interfaces';
 
 /**
  * Request interface for workout plan generation
@@ -65,8 +65,9 @@ export interface IAIStrategy {
 
   /**
    * Generate analysis for InBody metrics in both English and Vietnamese
+   * Returns structured analysis with body_composition_summary, recommendations, and training_nutrition_advice
    */
-  generateInbodyAnalysis(metrics: InbodyMetricsSummary, rawText?: string): Promise<Translatable>;
+  generateInbodyAnalysis(metrics: InbodyMetricsSummary, rawText?: string): Promise<InbodyAnalysis>;
 
   /**
    * Analyze InBody image from URL using vision AI
@@ -77,6 +78,13 @@ export interface IAIStrategy {
     metrics: InbodyMetricsSummary;
     ocrText?: string;
   }>;
+
+  /**
+   * Analyze body photo from URL using vision AI to estimate body composition
+   * @param imageUrl - URL of the body photo
+   * @returns Estimated metrics from the photo
+   */
+  analyzeBodyPhoto(imageUrl: string): Promise<InbodyMetricsSummary>;
 
   /**
    * Get the provider name

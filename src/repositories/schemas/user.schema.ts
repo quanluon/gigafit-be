@@ -43,6 +43,12 @@ export class SubscriptionInfo {
     default: () => ({ used: 0 }),
   })
   inbodyScan!: GenerationUsage;
+
+  @Prop({
+    type: GenerationUsage,
+    default: () => ({ used: 0 }),
+  })
+  bodyPhotoScan!: GenerationUsage;
 }
 
 @Schema({ timestamps: true })
@@ -92,6 +98,7 @@ export class User extends Document {
       workoutGeneration: { used: 0, limit: 3 },
       mealGeneration: { used: 0, limit: 3 },
       inbodyScan: { used: 0, limit: 1 },
+      bodyPhotoScan: { used: 0, limit: 3 },
     }),
   })
   subscription!: SubscriptionInfo;

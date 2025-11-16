@@ -7,6 +7,7 @@ import {
   InbodyResultRepository,
 } from '../../repositories';
 import { DayOfWeek, PlanSource } from '../../common/enums';
+import { InbodyAnalysis } from '../../common/interfaces';
 import { AIService } from '../ai/ai.service';
 import { GeneratePlanDto } from './dto/generate-plan.dto';
 import {
@@ -31,9 +32,36 @@ export class WorkoutService {
     const latestInbody = await this.inbodyResultRepository.findLatestCompleted(userId);
     const generatedPlan = await this.aiService.generateWorkoutPlan({
       ...generatePlanDto,
-      inbodySummary: latestInbody?.aiAnalysis
-        ? latestInbody.aiAnalysis.en || latestInbody.aiAnalysis.vi
-        : undefined,
+      inbodySummary: ((): string | undefined => {
+        if (!latestInbody?.aiAnalysis) return undefined;
+        const analysis = latestInbody.aiAnalysis;
+        // Old format: Translatable (en/vi are strings)
+        if (
+          typeof analysis === 'object' &&
+          analysis !== null &&
+          'en' in analysis &&
+          'vi' in analysis &&
+          typeof (analysis as { en: unknown }).en === 'string' &&
+          typeof (analysis as { vi: unknown }).vi === 'string'
+        ) {
+          const translatable = analysis as { en: string; vi: string };
+          return translatable.en || translatable.vi;
+        }
+        // New format: Structured object (InbodyAnalysis)
+        if (
+          typeof analysis === 'object' &&
+          analysis !== null &&
+          'en' in analysis &&
+          'vi' in analysis &&
+          typeof (analysis as { en: unknown }).en === 'object' &&
+          (analysis as { en: unknown }).en !== null &&
+          'body_composition_summary' in ((analysis as { en: unknown }).en as object)
+        ) {
+          const structured = analysis as InbodyAnalysis;
+          return structured.en.body_composition_summary || structured.vi.body_composition_summary;
+        }
+        return undefined;
+      })(),
       inbodyMetrics: latestInbody?.metrics,
     });
 

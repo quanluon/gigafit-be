@@ -9,12 +9,13 @@ import {
   DEFAULT_AI_MODELS,
   DEFAULT_WORKOUT_TEMPLATES,
 } from '../../../common/constants';
-import { InbodyMetricsSummary, Translatable } from '../../../common/interfaces';
+import { InbodyMetricsSummary, InbodyAnalysis } from '../../../common/interfaces';
 import { retryWithRateLimit } from '../../../common/utils/retry.util';
 import { InbodyVisionSchema } from '../schemas/inbody-vision.schema';
 import { InbodyAnalysisSchema } from '../schemas/inbody-analysis.schema';
 import { MealPlanScheduleSchema } from '../schemas/meal-plan.schema';
 import { WorkoutPlanSchema, WorkoutPlan as WorkoutPlanType } from '../schemas/workout-plan.schema';
+import { BodyPhotoVisionSchema } from '../schemas/body-photo-vision.schema';
 import {
   GeneratePlanRequest,
   GeneratedPlan,
@@ -102,7 +103,7 @@ Generate workout plan:
   async generateInbodyAnalysis(
     metrics: InbodyMetricsSummary,
     rawText?: string,
-  ): Promise<Translatable> {
+  ): Promise<InbodyAnalysis> {
     const metricsJson = JSON.stringify(metrics ?? {}, null, 2);
     const rawExcerpt = rawText ? rawText.slice(0, 1000) : 'N/A';
 
@@ -110,17 +111,22 @@ Generate workout plan:
       const llmWithStructuredOutput = this.llm.withStructuredOutput(InbodyAnalysisSchema);
 
       const promptTemplate = ChatPromptTemplate.fromTemplate(`
-Analyze InBody metrics. Return JSON with "en" and "vi" fields.
+Analyze InBody metrics and provide structured analysis in both English and Vietnamese.
 
 Metrics: {metricsJson}
-Raw: {rawExcerpt}
+Raw OCR text: {rawExcerpt}
 
-For each language (max 100 words):
-1. Body composition summary
-2. 3 key recommendations
-3. Training & nutrition advice
+IMPORTANT INSTRUCTIONS:
+- If metrics are zero or missing, ESTIMATE reasonable values based on typical body composition for reference
+- Always provide NUMBERS and ESTIMATIONS (even if approximate) so user can see and reference them
+- Use supportive, personal trainer tone - speak as system directly advising the user
 
-Use supportive tone. Speak as system advising user directly.`);
+For each language, return JSON object with:
+1. "body_composition_summary": Summary including key metrics and ESTIMATED NUMBERS (even if approximate)
+2. "recommendations": Array of exactly 3 practical recommendations
+3. "training_nutrition_advice": Specific, actionable advice with numbers and examples
+
+Format: Each field should be concise but include specific numbers and estimates.`);
 
       const chain = promptTemplate.pipe(llmWithStructuredOutput);
       const result = await chain.invoke({
@@ -128,15 +134,20 @@ Use supportive tone. Speak as system advising user directly.`);
         rawExcerpt,
       });
 
-      return {
-        en: result.en || 'Analysis unavailable.',
-        vi: result.vi || 'Không thể phân tích.',
-      };
+      return result;
     } catch (error) {
       this.logger.error('Failed to generate structured InBody analysis', error);
       return {
-        en: 'Analysis unavailable.',
-        vi: 'Không thể phân tích.',
+        en: {
+          body_composition_summary: 'Analysis unavailable.',
+          recommendations: [],
+          training_nutrition_advice: '',
+        },
+        vi: {
+          body_composition_summary: 'Không thể phân tích.',
+          recommendations: [],
+          training_nutrition_advice: '',
+        },
       };
     }
   }
@@ -299,37 +310,7 @@ Return JSON per schema. Include OCR text if readable.`;
       });
 
       // Convert to InbodyMetricsSummary, filtering out zero/missing values
-      const metrics: InbodyMetricsSummary = {};
-      if (result?.weight) {
-        metrics.weight = result.weight;
-      }
-      if (result?.skeletalMuscleMass) {
-        metrics.skeletalMuscleMass = result.skeletalMuscleMass;
-      }
-      if (result?.bodyFatMass) {
-        metrics.bodyFatMass = result.bodyFatMass;
-      }
-      if (result?.bodyFatPercent) {
-        metrics.bodyFatPercent = result.bodyFatPercent;
-      }
-      if (result?.bmi) {
-        metrics.bmi = result.bmi;
-      }
-      if (result?.visceralFatLevel) {
-        metrics.visceralFatLevel = result.visceralFatLevel;
-      }
-      if (result?.basalMetabolicRate) {
-        metrics.basalMetabolicRate = result.basalMetabolicRate;
-      }
-      if (result?.totalBodyWater) {
-        metrics.totalBodyWater = result.totalBodyWater;
-      }
-      if (result?.protein) {
-        metrics.protein = result.protein;
-      }
-      if (result?.minerals) {
-        metrics.minerals = result.minerals;
-      }
+      const metrics: InbodyMetricsSummary = { ...result };
 
       return {
         metrics,
@@ -337,6 +318,55 @@ Return JSON per schema. Include OCR text if readable.`;
       };
     } catch (error) {
       this.logger.error('Failed to analyze InBody image with OpenAI Vision', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze body photo from URL using OpenAI Vision to estimate body composition
+   */
+  async analyzeBodyPhoto(imageUrl: string): Promise<InbodyMetricsSummary> {
+    try {
+      const llmWithStructuredOutput = this.llm.withStructuredOutput(BodyPhotoVisionSchema);
+
+      const prompt = `Analyze this full-body photo to estimate comprehensive body composition metrics similar to InBody scan results.
+
+Estimate the following metrics:
+- Weight (kg)
+- Body fat percentage (%)
+- Skeletal muscle mass (kg)
+- Body fat mass (kg)
+- BMI (Body Mass Index)
+- Estimated height (cm)
+- Visceral fat level (1-59 scale)
+- Basal Metabolic Rate (BMR) in kcal/day
+- Total body water (kg)
+- Protein mass (kg)
+- Minerals mass (kg)
+
+Provide confidence score 0-100 for overall estimation accuracy.
+
+Note: These are estimates based on visual analysis. Actual values may vary. Use typical body composition ratios and formulas when needed.`;
+
+      const message = new HumanMessage({
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: imageUrl } },
+        ],
+      });
+
+      const result = await retryWithRateLimit(async () => {
+        return await llmWithStructuredOutput.invoke([message]);
+      });
+
+      // Convert to InbodyMetricsSummary, filtering out zero/missing values
+      const metrics: InbodyMetricsSummary = { ...result };
+
+      this.logger.log(`Body photo analysis completed. Confidence: ${result?.confidence || 0}%`);
+
+      return metrics;
+    } catch (error) {
+      this.logger.error('Failed to analyze body photo with OpenAI Vision', error);
       throw error;
     }
   }

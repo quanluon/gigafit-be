@@ -1,9 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InbodyResultRepository } from '../../repositories/inbody-result.repository';
-import { InbodyResult } from '../../repositories/schemas/inbody-result.schema';
+import { InbodyResult, InbodySourceType } from '../../repositories/schemas/inbody-result.schema';
 import { GenerationType, InbodyStatus, WebSocketEvent, WebSocketRoom } from '../../common/enums';
 import { SubscriptionService } from '../user/services/subscription.service';
-import { InbodyMetricsSummary, Translatable } from '../../common/interfaces';
+import { InbodyMetricsSummary, InbodyAnalysis } from '../../common/interfaces';
 import { AIService } from '../ai/ai.service';
 import { NotificationGateway } from '../notification/notification.gateway';
 
@@ -62,15 +62,24 @@ export class InbodyService {
       this.notificationGateway.server
         .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
         .emit(WebSocketEvent.INBODY_SCAN_STARTED, {
-          message: 'Starting InBody image analysis...',
+          progress: 0,
+          message: 'Đang chuẩn bị phân tích...',
         });
 
       // Emit progress: analyzing image
       this.notificationGateway.server
         .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
         .emit(WebSocketEvent.INBODY_SCAN_PROGRESS, {
-          progress: 30,
-          message: 'Analyzing image with AI...',
+          progress: 20,
+          message: 'Đang suy nghĩ về báo cáo InBody của bạn...',
+        });
+
+      // Emit progress: processing
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.INBODY_SCAN_PROGRESS, {
+          progress: 40,
+          message: 'Đang đọc và phân tích hình ảnh...',
         });
 
       // Use AI vision to analyze the image
@@ -80,8 +89,16 @@ export class InbodyService {
       this.notificationGateway.server
         .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
         .emit(WebSocketEvent.INBODY_SCAN_PROGRESS, {
-          progress: 80,
-          message: 'Extracting body metrics...',
+          progress: 70,
+          message: 'Đang trích xuất các chỉ số cơ thể...',
+        });
+
+      // Emit progress: finalizing
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.INBODY_SCAN_PROGRESS, {
+          progress: 90,
+          message: 'Đang hoàn thiện phân tích...',
         });
 
       // Increment usage after successful scan
@@ -91,12 +108,13 @@ export class InbodyService {
       this.notificationGateway.server
         .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
         .emit(WebSocketEvent.INBODY_SCAN_COMPLETE, {
-          message: 'InBody scan completed successfully!',
+          progress: 100,
+          message: 'Hoàn thành phân tích InBody thành công!',
         });
 
       return result;
     } catch (error) {
-      this.logger.error('Failed to scan InBody image with AI vision', error);
+      this.logger.error('Failed to scan InBody image', error);
       // Emit error event
       this.notificationGateway.server
         .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
@@ -133,6 +151,7 @@ export class InbodyService {
     const result = await this.inbodyResultRepository.create({
       userId,
       status: InbodyStatus.PROCESSING,
+      sourceType: InbodySourceType.INBODY_SCAN,
       s3Url,
       originalFilename,
       ocrText: ocrText.trim(),
@@ -140,15 +159,15 @@ export class InbodyService {
       takenAt: takenAt || new Date(),
     });
 
-    // Process AI analysis asynchronously
+    // Process analysis asynchronously
     this.processAiAnalysis(result._id!.toString(), ocrText, metrics || {}).catch((error) => {
-      this.logger.error('Failed to process AI analysis', error);
+      this.logger.error('Failed to process analysis', error);
     });
 
     return result;
   }
 
-  private async processAiAnalysis(
+  async processAiAnalysis(
     resultId: string,
     ocrText: string,
     metrics: InbodyMetricsSummary,
@@ -170,7 +189,7 @@ export class InbodyService {
         );
       }
     } catch (error) {
-      this.logger.error('AI analysis failed', error);
+      this.logger.error('Analysis failed', error);
       await this.inbodyResultRepository.update(resultId, {
         status: InbodyStatus.FAILED,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
@@ -197,17 +216,153 @@ export class InbodyService {
     };
   }
 
+  async analyzeBodyPhoto(
+    userId: string,
+    s3Url: string,
+    originalFilename: string,
+    takenAt?: Date,
+  ): Promise<InbodyResult> {
+    const hasQuota = await this.subscriptionService.hasAvailableGenerations(
+      userId,
+      GenerationType.BODY_PHOTO,
+    );
+    if (!hasQuota) {
+      throw new BadRequestException('Subscription limit reached for body photo analysis');
+    }
+
+    if (!s3Url) {
+      throw new BadRequestException('S3 URL is required');
+    }
+
+    // Create result with PROCESSING status
+    const result = await this.inbodyResultRepository.create({
+      userId,
+      status: InbodyStatus.PROCESSING,
+      sourceType: InbodySourceType.BODY_PHOTO,
+      s3Url,
+      originalFilename,
+      takenAt: takenAt || new Date(),
+    });
+
+    // Process analysis asynchronously with socket notifications
+    this.processBodyPhotoAnalysis(result._id!.toString(), s3Url, userId).catch((error) => {
+      this.logger.error('Failed to process body photo analysis', error);
+    });
+
+    return result;
+  }
+
+  async processBodyPhotoAnalysis(
+    resultId: string,
+    imageUrl: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      // Emit started event
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_STARTED, {
+          resultId,
+          progress: 0,
+          message: 'Đang chuẩn bị phân tích...',
+        });
+
+      // Emit progress: analyzing image
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_PROGRESS, {
+          resultId,
+          progress: 15,
+          message: 'Đang suy nghĩ về hình ảnh cơ thể của bạn...',
+        });
+
+      // Emit progress: processing
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_PROGRESS, {
+          resultId,
+          progress: 35,
+          message: 'Đang phân tích các chỉ số cơ thể...',
+        });
+
+      // Use AI vision to estimate body composition from photo
+      const metrics = await this.aiService.analyzeBodyPhoto(imageUrl);
+
+      // Emit progress: extracting metrics
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_PROGRESS, {
+          resultId,
+          progress: 60,
+          message: 'Đang ước lượng % mỡ cơ thể và các chỉ số...',
+        });
+
+      // Emit progress: generating analysis
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_PROGRESS, {
+          resultId,
+          progress: 80,
+          message: 'Đang tạo phân tích chi tiết...',
+        });
+
+      // Generate personalized analysis with estimated metrics
+      const aiAnalysis = await this.generateAiAnalysis(metrics, '');
+
+      // Update result with metrics and analysis
+      await this.inbodyResultRepository.update(resultId, {
+        status: InbodyStatus.COMPLETED,
+        metrics,
+        aiAnalysis,
+      });
+
+      // Increment usage after successful analysis
+      await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.BODY_PHOTO);
+
+      // Emit completion event
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_COMPLETE, {
+          resultId,
+          progress: 100,
+          message: 'Hoàn thành phân tích ảnh cơ thể thành công!',
+        });
+    } catch (error) {
+      this.logger.error('Body photo analysis failed', error);
+      await this.inbodyResultRepository.update(resultId, {
+        status: InbodyStatus.FAILED,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      // Emit error event
+      this.notificationGateway.server
+        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
+        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_ERROR, {
+          resultId,
+          message: error instanceof Error ? error.message : 'Failed to analyze body photo',
+        });
+    }
+  }
+
   private async generateAiAnalysis(
     metrics: InbodyMetricsSummary,
     ocrText: string,
-  ): Promise<Translatable> {
+  ): Promise<InbodyAnalysis> {
     try {
       return await this.aiService.generateInbodyAnalysis(metrics, ocrText);
     } catch (error) {
-      this.logger.error('Failed to generate AI analysis for InBody result', error);
+      this.logger.error('Failed to generate analysis for InBody result', error);
       return {
-        en: 'Unable to generate AI insights at this time.',
-        vi: 'Không thể tạo thông tin chi tiết AI vào lúc này.',
+        en: {
+          body_composition_summary: 'Unable to generate personalized insights at this time.',
+          recommendations: [],
+          training_nutrition_advice: '',
+        },
+        vi: {
+          body_composition_summary: 'Không thể tạo thông tin chi tiết cá nhân hóa vào lúc này.',
+          recommendations: [],
+          training_nutrition_advice: '',
+        },
       };
     }
   }

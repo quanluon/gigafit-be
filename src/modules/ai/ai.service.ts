@@ -10,7 +10,7 @@ import {
   GeneratePlanRequest,
   GeneratedPlan,
 } from './strategies/ai-strategy.interface';
-import { InbodyMetricsSummary, Translatable } from '../../common/interfaces';
+import { InbodyMetricsSummary, InbodyAnalysis } from '../../common/interfaces';
 
 /**
  * AI Service with Strategy Pattern
@@ -75,7 +75,7 @@ export class AIService {
   async generateInbodyAnalysis(
     metrics: InbodyMetricsSummary,
     rawText?: string,
-  ): Promise<Translatable> {
+  ): Promise<InbodyAnalysis> {
     return this.strategy.generateInbodyAnalysis(metrics, rawText);
   }
 
@@ -87,6 +87,13 @@ export class AIService {
     ocrText?: string;
   }> {
     return this.strategy.analyzeInbodyImage(imageUrl);
+  }
+
+  /**
+   * Analyze body photo from URL using AI vision to estimate body composition
+   */
+  async analyzeBodyPhoto(imageUrl: string): Promise<InbodyMetricsSummary> {
+    return this.strategy.analyzeBodyPhoto(imageUrl);
   }
 
   /**

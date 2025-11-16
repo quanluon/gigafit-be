@@ -56,6 +56,7 @@ export class SubscriptionGuard implements CanActivate {
       workout: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].workout,
       meal: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].meal,
       inbody: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].inbody,
+      bodyPhoto: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].bodyPhoto,
     };
 
     let used: number;
@@ -70,6 +71,9 @@ export class SubscriptionGuard implements CanActivate {
     } else if (generationType === GenerationType.INBODY) {
       used = user.subscription?.inbodyScan?.used || 0;
       limit = user.subscription?.inbodyScan?.limit || limits.inbody;
+    } else if (generationType === GenerationType.BODY_PHOTO) {
+      used = user.subscription?.bodyPhotoScan?.used || 0;
+      limit = user.subscription?.bodyPhotoScan?.limit || limits.bodyPhoto;
     } else {
       // If no type specified, allow (for backward compatibility)
       return true;
@@ -127,6 +131,14 @@ export class SubscriptionGuard implements CanActivate {
             ...user.subscription?.mealGeneration,
             used: 0,
           },
+          inbodyScan: {
+            ...user.subscription?.inbodyScan,
+            used: 0,
+          },
+          bodyPhotoScan: {
+            ...user.subscription?.bodyPhotoScan,
+            used: 0,
+          },
         },
       });
 
@@ -141,6 +153,9 @@ export class SubscriptionGuard implements CanActivate {
         }
         if (user.subscription.inbodyScan) {
           user.subscription.inbodyScan.used = 0;
+        }
+        if (user.subscription.bodyPhotoScan) {
+          user.subscription.bodyPhotoScan.used = 0;
         }
       }
     }

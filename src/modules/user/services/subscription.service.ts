@@ -93,6 +93,7 @@ export class SubscriptionService {
     workout: { used: number; limit: number; remaining: number };
     meal: { used: number; limit: number; remaining: number };
     inbody: { used: number; limit: number; remaining: number };
+    bodyPhoto: { used: number; limit: number; remaining: number };
   }> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -102,6 +103,7 @@ export class SubscriptionService {
     const workoutStats = await this.getRemainingGenerations(userId, GenerationType.WORKOUT);
     const mealStats = await this.getRemainingGenerations(userId, GenerationType.MEAL);
     const inbodyStats = await this.getRemainingGenerations(userId, GenerationType.INBODY);
+    const bodyPhotoStats = await this.getRemainingGenerations(userId, GenerationType.BODY_PHOTO);
 
     return {
       plan: user.subscription?.plan || SubscriptionPlan.FREE,
@@ -120,6 +122,11 @@ export class SubscriptionService {
         used: inbodyStats.used,
         limit: inbodyStats.limit,
         remaining: inbodyStats.remaining,
+      },
+      bodyPhoto: {
+        used: bodyPhotoStats.used,
+        limit: bodyPhotoStats.limit,
+        remaining: bodyPhotoStats.remaining,
       },
     };
   }
@@ -150,6 +157,10 @@ export class SubscriptionService {
         inbodyScan: {
           ...user.subscription?.inbodyScan,
           limit: limits.inbody,
+        },
+        bodyPhotoScan: {
+          ...user.subscription?.bodyPhotoScan,
+          limit: limits.bodyPhoto,
         },
       },
     });
@@ -184,6 +195,10 @@ export class SubscriptionService {
           ...user.subscription?.inbodyScan,
           used: 0,
         },
+        bodyPhotoScan: {
+          ...user.subscription?.bodyPhotoScan,
+          used: 0,
+        },
       },
     });
 
@@ -192,7 +207,7 @@ export class SubscriptionService {
 
   private getUsageKey(
     type: GenerationType,
-  ): 'workoutGeneration' | 'mealGeneration' | 'inbodyScan' | null {
+  ): 'workoutGeneration' | 'mealGeneration' | 'inbodyScan' | 'bodyPhotoScan' | null {
     switch (type) {
       case GenerationType.WORKOUT:
         return 'workoutGeneration';
@@ -200,12 +215,14 @@ export class SubscriptionService {
         return 'mealGeneration';
       case GenerationType.INBODY:
         return 'inbodyScan';
+      case GenerationType.BODY_PHOTO:
+        return 'bodyPhotoScan';
       default:
         return null;
     }
   }
 
-  private getLimitKey(type: GenerationType): 'workout' | 'meal' | 'inbody' {
+  private getLimitKey(type: GenerationType): 'workout' | 'meal' | 'inbody' | 'bodyPhoto' {
     switch (type) {
       case GenerationType.WORKOUT:
         return 'workout';
@@ -213,6 +230,8 @@ export class SubscriptionService {
         return 'meal';
       case GenerationType.INBODY:
         return 'inbody';
+      case GenerationType.BODY_PHOTO:
+        return 'bodyPhoto';
       default:
         return 'workout';
     }

@@ -33,6 +33,12 @@ export enum WebSocketEvent {
   INBODY_SCAN_PROGRESS = 'inbody.scan.progress',
   INBODY_SCAN_COMPLETE = 'inbody.scan.complete',
   INBODY_SCAN_ERROR = 'inbody.scan.error',
+
+  // Body photo analysis events
+  BODY_PHOTO_ANALYSIS_STARTED = 'body-photo.analysis.started',
+  BODY_PHOTO_ANALYSIS_PROGRESS = 'body-photo.analysis.progress',
+  BODY_PHOTO_ANALYSIS_COMPLETE = 'body-photo.analysis.complete',
+  BODY_PHOTO_ANALYSIS_ERROR = 'body-photo.analysis.error',
 }
 
 export enum WebSocketRoom {

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { InbodyStatus } from '../../common/enums';
-import { Translatable } from '../../common/interfaces';
+import { Translatable, InbodyAnalysis } from '../../common/interfaces';
 
 export class SegmentMeasurement {
   @Prop({ type: String })
@@ -14,6 +14,11 @@ export class SegmentMeasurement {
   percentage?: number;
 }
 
+export enum InbodySourceType {
+  INBODY_SCAN = 'inbody_scan',
+  BODY_PHOTO = 'body_photo',
+}
+
 @Schema({ timestamps: true, collection: 'inbody_results' })
 export class InbodyResult extends Document {
   @Prop({ required: true })
@@ -21,6 +26,13 @@ export class InbodyResult extends Document {
 
   @Prop({ type: String, enum: InbodyStatus, default: InbodyStatus.PENDING })
   status!: InbodyStatus;
+
+  @Prop({
+    type: String,
+    enum: InbodySourceType,
+    default: InbodySourceType.INBODY_SCAN,
+  })
+  sourceType!: InbodySourceType;
 
   @Prop()
   s3Url!: string;
@@ -41,6 +53,7 @@ export class InbodyResult extends Document {
     bodyFatMass?: number;
     bodyFatPercent?: number;
     bmi?: number;
+    height?: number; // Estimated height from body photo analysis
     visceralFatLevel?: number;
     basalMetabolicRate?: number;
     totalBodyWater?: number;
@@ -51,7 +64,7 @@ export class InbodyResult extends Document {
   };
 
   @Prop({ type: Object })
-  aiAnalysis?: Translatable;
+  aiAnalysis?: Translatable | InbodyAnalysis;
 
   @Prop({ default: () => new Date() })
   takenAt?: Date;
