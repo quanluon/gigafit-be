@@ -95,10 +95,10 @@ export class User extends Document {
     default: () => ({
       plan: SubscriptionPlan.FREE,
       periodStart: new Date(),
-      workoutGeneration: { used: 0, limit: 3 },
-      mealGeneration: { used: 0, limit: 3 },
-      inbodyScan: { used: 0, limit: 1 },
-      bodyPhotoScan: { used: 0, limit: 3 },
+      workoutGeneration: { used: 0 },
+      mealGeneration: { used: 0 },
+      inbodyScan: { used: 0 },
+      bodyPhotoScan: { used: 0 },
     }),
   })
   subscription!: SubscriptionInfo;
