@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MealPlanScheduleSchema } from '../schemas/meal-plan.schema';
+import { InbodyVisionSchema } from '../schemas/inbody-vision.schema';
+import { InbodyAnalysisSchema } from '../schemas/inbody-analysis.schema';
 import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { retryWithRateLimit } from '../../../common/utils/retry.util';
 import { AIProviderName, DayOfWeek, Goal } from '../../../common';
+import { InbodyMetricsSummary, Translatable } from '../../../common/interfaces';
 import {
   DEFAULT_AI_MODELS,
   AI_TEMPERATURE,
@@ -57,34 +60,14 @@ export class GeminiStrategy implements IAIStrategy {
           const llmWithStructuredOutput = this.llm.withStructuredOutput(WorkoutPlanSchema);
 
           const promptTemplate = ChatPromptTemplate.fromTemplate(`
-You are a professional fitness trainer. Generate a workout plan based on the following user requirements:
+Generate workout plan:
 
 {userRequirements}
 
-Generate a workout plan with the following specifications:
-- Include 4-6 exercises per day
-- Ensure proper muscle group distribution and recovery
-- Use common exercise names (e.g., "Bench Press", "Squat", "Deadlift")
-- videoUrl should be empty string "" (we will fill this automatically)
-- Focus on exercise quality over quantity
-
-Common exercises to choose from:
-- Chest: Bench Press, Incline Press, Dumbbell Fly, Push-ups
-- Back: Deadlift, Pull-ups, Barbell Row, Lat Pulldown
-- Legs: Squat, Leg Press, Lunges, Leg Curl
-- Shoulders: Overhead Press, Lateral Raise, Front Raise
-- Arms: Bicep Curl, Tricep Extension, Hammer Curl, Dips
-
-Return a JSON object with the structure:
-{{
-  "schedule": [
-    {{
-      "dayOfWeek": "monday",
-      "focus": {{ "en": "Chest & Triceps", "vi": "Ngực & Tay sau" }},
-      "exercises": [{{ "name": {{}}, "description": {{}}, "sets": 4, "reps": "8-10", "videoUrl": "" }}]
-    }}
-  ]
-}}
+- 4-6 exercises/day
+- Proper muscle distribution
+- videoUrl: empty string ""
+- Bilingual names/descriptions (en/vi)
 `);
 
           const chain = promptTemplate.pipe(llmWithStructuredOutput);
@@ -171,21 +154,29 @@ Return a JSON object with a "schedule" property containing the meal plan.
       targetWeight,
       workoutTimeMinutes,
       notes,
+      inbodySummary,
+      inbodyMetrics,
     } = request;
 
-    let requirements = `
-- Goal: ${goal}
-- Experience Level: ${experienceLevel}
-- Training Days: ${scheduleDays.join(', ')}`;
+    let requirements = `Goal: ${goal}, Level: ${experienceLevel}, Days: ${scheduleDays.join(',')}`;
 
-    if (weight) requirements += `\n- Current Weight: ${weight}kg`;
-    if (targetWeight) requirements += `\n- Target Weight: ${targetWeight}kg`;
-    if (height) requirements += `\n- Height: ${height}cm`;
+    if (weight) requirements += `, ${weight}kg`;
+    if (targetWeight) requirements += `→${targetWeight}kg`;
+    if (height) requirements += `, ${height}cm`;
     if (workoutTimeMinutes) {
-      requirements += `\n- Target Session Duration: ${workoutTimeMinutes} minutes (match workout volume to this duration)`;
+      requirements += `, ${workoutTimeMinutes}min/session`;
     }
     if (notes) {
-      requirements += `\n- Additional Preferences: ${notes}`;
+      requirements += `\n${notes.slice(0, 100)}`;
+    }
+    if (inbodySummary) {
+      requirements += `\nInBody: ${inbodySummary.slice(0, 150)}`;
+    }
+    if (inbodyMetrics?.bodyFatPercent) {
+      requirements += `\nBF: ${inbodyMetrics.bodyFatPercent}%`;
+    }
+    if (inbodyMetrics?.skeletalMuscleMass) {
+      requirements += `, Muscle: ${inbodyMetrics.skeletalMuscleMass}kg`;
     }
 
     return requirements;
@@ -234,5 +225,113 @@ Return a JSON object with a "schedule" property containing the meal plan.
       focus: template.focus,
       exercises: template.exercises,
     };
+  }
+
+  async generateInbodyAnalysis(
+    metrics: InbodyMetricsSummary,
+    rawText?: string,
+  ): Promise<Translatable> {
+    const metricsJson = JSON.stringify(metrics ?? {}, null, 2);
+    const rawExcerpt = rawText ? rawText.slice(0, 1200) : 'N/A';
+
+    try {
+      const llmWithStructuredOutput = this.llm.withStructuredOutput(InbodyAnalysisSchema);
+
+      const prompt = `
+Analyze InBody metrics. Return JSON with "en" and "vi" fields.
+
+Metrics: ${metricsJson}
+Raw: ${rawExcerpt}
+
+For each (max 100 words):
+1. Body composition summary
+2. 3 key recommendations
+3. Training & nutrition advice
+
+Supportive tone. Advise user directly.`;
+
+      const result = await llmWithStructuredOutput.invoke([{ role: 'user', content: prompt }]);
+
+      return {
+        en: result.en || 'Analysis unavailable.',
+        vi: result.vi || 'Không thể phân tích.',
+      };
+    } catch (error) {
+      this.logger.error('Failed to generate structured InBody analysis', error);
+      return {
+        en: 'Analysis unavailable.',
+        vi: 'Không thể phân tích.',
+      };
+    }
+  }
+
+  /**
+   * Analyze InBody image from URL using Gemini Vision
+   */
+  async analyzeInbodyImage(imageUrl: string): Promise<{
+    metrics: InbodyMetricsSummary;
+    ocrText?: string;
+  }> {
+    try {
+      const llmWithStructuredOutput = this.llm.withStructuredOutput(InbodyVisionSchema);
+
+      const prompt = `Extract InBody metrics from image. Values may be Vietnamese/English.
+
+Find: Weight, Skeletal Muscle Mass, Body Fat Mass/%, BMI, Visceral Fat, BMR/TDEE, Total Body Water, Protein, Minerals.
+
+Return JSON per schema. Include OCR text if readable.`;
+
+      // Gemini supports image URLs directly in the content
+      const response = await llmWithStructuredOutput.invoke([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: imageUrl } },
+          ],
+        },
+      ]);
+
+      // Convert to InbodyMetricsSummary, filtering out zero/missing values
+      const metrics: InbodyMetricsSummary = {};
+      if (response?.weight) {
+        metrics.weight = response.weight;
+      }
+      if (response?.skeletalMuscleMass) {
+        metrics.skeletalMuscleMass = response.skeletalMuscleMass;
+      }
+      if (response?.bodyFatMass) {
+        metrics.bodyFatMass = response.bodyFatMass;
+      }
+      if (response?.bodyFatPercent) {
+        metrics.bodyFatPercent = response.bodyFatPercent;
+      }
+      if (response?.bmi) {
+        metrics.bmi = response.bmi;
+      }
+      if (response?.visceralFatLevel) {
+        metrics.visceralFatLevel = response.visceralFatLevel;
+      }
+      if (response?.basalMetabolicRate) {
+        metrics.basalMetabolicRate = response.basalMetabolicRate;
+      }
+      if (response?.totalBodyWater) {
+        metrics.totalBodyWater = response.totalBodyWater;
+      }
+      if (response?.protein) {
+        metrics.protein = response.protein;
+      }
+      if (response?.minerals) {
+        metrics.minerals = response.minerals;
+      }
+
+      return {
+        metrics,
+        ocrText: response.ocrText || undefined,
+      };
+    } catch (error) {
+      this.logger.error('Failed to analyze InBody image with Gemini Vision', error);
+      throw error;
+    }
   }
 }

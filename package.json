@@ -23,6 +23,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.10.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.478.0",
+    "@aws-sdk/client-s3": "^3.932.0",
+    "@aws-sdk/s3-request-presigner": "^3.932.0",
     "@google/generative-ai": "^0.24.1",
     "@langchain/core": "^1.0.4",
     "@langchain/google-genai": "^1.0.0",
@@ -62,6 +64,7 @@
     "@nestjs/testing": "^10.3.0",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.11",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.10.6",
     "@types/passport-jwt": "^4.0.0",
     "@types/supertest": "^6.0.2",

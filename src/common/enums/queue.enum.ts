@@ -2,12 +2,14 @@ export enum QueueName {
   WORKOUT_GENERATION = 'workout-generation',
   MEAL_GENERATION = 'meal-generation',
   EXERCISE_CRAWLING = 'exercise-crawling',
+  INBODY_OCR = 'inbody-ocr',
 }
 
 export enum JobName {
   GENERATE_WORKOUT_PLAN = 'generate-workout-plan',
   GENERATE_MEAL_PLAN = 'generate-meal-plan',
   CRAWL_EXERCISES = 'crawl-exercises',
+  PROCESS_INBODY_REPORT = 'process-inbody-report',
 }
 
 export enum JobStatus {

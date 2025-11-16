@@ -1,20 +1,24 @@
+import { HumanMessage } from '@langchain/core/messages';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import { ChatOpenAI } from '@langchain/openai';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { MealPlanScheduleSchema } from '../schemas/meal-plan.schema';
-import { retryWithRateLimit } from '../../../common/utils/retry.util';
 import { AIProviderName, DayOfWeek, ExperienceLevel, Goal } from '../../../common';
 import {
-  DEFAULT_AI_MODELS,
   AI_TEMPERATURE,
+  DEFAULT_AI_MODELS,
   DEFAULT_WORKOUT_TEMPLATES,
 } from '../../../common/constants';
+import { InbodyMetricsSummary, Translatable } from '../../../common/interfaces';
+import { retryWithRateLimit } from '../../../common/utils/retry.util';
+import { InbodyVisionSchema } from '../schemas/inbody-vision.schema';
+import { InbodyAnalysisSchema } from '../schemas/inbody-analysis.schema';
+import { MealPlanScheduleSchema } from '../schemas/meal-plan.schema';
 import { WorkoutPlanSchema, WorkoutPlan as WorkoutPlanType } from '../schemas/workout-plan.schema';
 import {
-  IAIStrategy,
   GeneratePlanRequest,
   GeneratedPlan,
+  IAIStrategy,
   WorkoutDay,
 } from './ai-strategy.interface';
 
@@ -59,34 +63,14 @@ export class OpenAIStrategy implements IAIStrategy {
           const llmWithStructuredOutput = this.llm.withStructuredOutput(WorkoutPlanSchema);
 
           const promptTemplate = ChatPromptTemplate.fromTemplate(`
-You are a professional fitness trainer. Generate a workout plan based on the following user requirements:
+Generate workout plan:
 
 {userRequirements}
 
-Generate a workout plan with the following specifications:
 - ${exerciseVolumeGuidance}
-- Ensure proper muscle group distribution and recovery
-- Use common exercise names (e.g., "Bench Press", "Squat", "Deadlift")
-- videoUrl should be empty string "" (we will fill this automatically)
-- Focus on exercise quality over quantity
-
-Common exercises to choose from:
-- Chest: Bench Press, Incline Press, Dumbbell Fly, Push-ups
-- Back: Deadlift, Pull-ups, Barbell Row, Lat Pulldown
-- Legs: Squat, Leg Press, Lunges, Leg Curl
-- Shoulders: Overhead Press, Lateral Raise, Front Raise
-- Arms: Bicep Curl, Tricep Extension, Hammer Curl, Dips
-
-Return a JSON object with the structure:
-{{
-  "schedule": [
-    {{
-      "dayOfWeek": "monday",
-      "focus": {{ "en": "Chest & Triceps", "vi": "Ngực & Tay sau" }},
-      "exercises": [{{ "name": {{}}, "description": {{}}, "sets": 4, "reps": "8-10", "videoUrl": "" }}]
-    }}
-  ]
-}}
+- Proper muscle group distribution
+- videoUrl: empty string ""
+- Bilingual names/descriptions (en/vi)
 `);
 
           const chain = promptTemplate.pipe(llmWithStructuredOutput);
@@ -115,6 +99,48 @@ Return a JSON object with the structure:
     }
   }
 
+  async generateInbodyAnalysis(
+    metrics: InbodyMetricsSummary,
+    rawText?: string,
+  ): Promise<Translatable> {
+    const metricsJson = JSON.stringify(metrics ?? {}, null, 2);
+    const rawExcerpt = rawText ? rawText.slice(0, 1000) : 'N/A';
+
+    try {
+      const llmWithStructuredOutput = this.llm.withStructuredOutput(InbodyAnalysisSchema);
+
+      const promptTemplate = ChatPromptTemplate.fromTemplate(`
+Analyze InBody metrics. Return JSON with "en" and "vi" fields.
+
+Metrics: {metricsJson}
+Raw: {rawExcerpt}
+
+For each language (max 100 words):
+1. Body composition summary
+2. 3 key recommendations
+3. Training & nutrition advice
+
+Use supportive tone. Speak as system advising user directly.`);
+
+      const chain = promptTemplate.pipe(llmWithStructuredOutput);
+      const result = await chain.invoke({
+        metricsJson,
+        rawExcerpt,
+      });
+
+      return {
+        en: result.en || 'Analysis unavailable.',
+        vi: result.vi || 'Không thể phân tích.',
+      };
+    } catch (error) {
+      this.logger.error('Failed to generate structured InBody analysis', error);
+      return {
+        en: 'Analysis unavailable.',
+        vi: 'Không thể phân tích.',
+      };
+    }
+  }
+
   /**
    * Generate meal plan using OpenAI with structured output
    */
@@ -126,12 +152,11 @@ Return a JSON object with the structure:
           const llmWithStructuredOutput = this.llm.withStructuredOutput(MealPlanScheduleSchema);
 
           const promptTemplate = ChatPromptTemplate.fromTemplate(`
-You are a professional nutritionist and meal planner. Generate a detailed, nutritionally accurate meal plan.
+Generate meal plan:
 
 {userPrompt}
 
-Include bilingual names (English and Vietnamese) and precise macro calculations.
-Return a JSON object with a "schedule" property containing the meal plan.
+Bilingual (en/vi), accurate macros.
 `);
 
           const chain = promptTemplate.pipe(llmWithStructuredOutput);
@@ -173,21 +198,29 @@ Return a JSON object with a "schedule" property containing the meal plan.
       targetWeight,
       workoutTimeMinutes,
       notes,
+      inbodySummary,
+      inbodyMetrics,
     } = request;
 
-    let requirements = `
-- Goal: ${goal}
-- Experience Level: ${experienceLevel}
-- Training Days: ${scheduleDays.join(', ')}`;
+    let requirements = `Goal: ${goal}, Level: ${experienceLevel}, Days: ${scheduleDays.join(',')}`;
 
-    if (weight) requirements += `\n- Current Weight: ${weight}kg`;
-    if (targetWeight) requirements += `\n- Target Weight: ${targetWeight}kg`;
-    if (height) requirements += `\n- Height: ${height}cm`;
+    if (weight) requirements += `, ${weight}kg`;
+    if (targetWeight) requirements += `→${targetWeight}kg`;
+    if (height) requirements += `, ${height}cm`;
     if (workoutTimeMinutes) {
-      requirements += `\n- Target Session Duration: ${workoutTimeMinutes} minutes (adjust exercise count and volume to fit this window)`;
+      requirements += `, ${workoutTimeMinutes}min/session`;
     }
     if (notes) {
-      requirements += `\n- Additional Preferences: ${notes}`;
+      requirements += `\n${notes.slice(0, 100)}`;
+    }
+    if (inbodySummary) {
+      requirements += `\nInBody: ${inbodySummary.slice(0, 150)}`;
+    }
+    if (inbodyMetrics?.bodyFatPercent) {
+      requirements += `\nBF: ${inbodyMetrics.bodyFatPercent}%`;
+    }
+    if (inbodyMetrics?.skeletalMuscleMass) {
+      requirements += `, Muscle: ${inbodyMetrics.skeletalMuscleMass}kg`;
     }
 
     return requirements;
@@ -236,6 +269,76 @@ Return a JSON object with a "schedule" property containing the meal plan.
     }
 
     return { schedule };
+  }
+
+  /**
+   * Analyze InBody image from URL using OpenAI Vision
+   */
+  async analyzeInbodyImage(imageUrl: string): Promise<{
+    metrics: InbodyMetricsSummary;
+    ocrText?: string;
+  }> {
+    try {
+      const llmWithStructuredOutput = this.llm.withStructuredOutput(InbodyVisionSchema);
+
+      const prompt = `Extract InBody metrics from image. Values may be Vietnamese/English.
+
+Find: Weight, Skeletal Muscle Mass, Body Fat Mass/%, BMI, Visceral Fat, BMR/TDEE, Total Body Water, Protein, Minerals.
+
+Return JSON per schema. Include OCR text if readable.`;
+
+      const message = new HumanMessage({
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: imageUrl } },
+        ],
+      });
+
+      const result = await retryWithRateLimit(async () => {
+        return await llmWithStructuredOutput.invoke([message]);
+      });
+
+      // Convert to InbodyMetricsSummary, filtering out zero/missing values
+      const metrics: InbodyMetricsSummary = {};
+      if (result?.weight) {
+        metrics.weight = result.weight;
+      }
+      if (result?.skeletalMuscleMass) {
+        metrics.skeletalMuscleMass = result.skeletalMuscleMass;
+      }
+      if (result?.bodyFatMass) {
+        metrics.bodyFatMass = result.bodyFatMass;
+      }
+      if (result?.bodyFatPercent) {
+        metrics.bodyFatPercent = result.bodyFatPercent;
+      }
+      if (result?.bmi) {
+        metrics.bmi = result.bmi;
+      }
+      if (result?.visceralFatLevel) {
+        metrics.visceralFatLevel = result.visceralFatLevel;
+      }
+      if (result?.basalMetabolicRate) {
+        metrics.basalMetabolicRate = result.basalMetabolicRate;
+      }
+      if (result?.totalBodyWater) {
+        metrics.totalBodyWater = result.totalBodyWater;
+      }
+      if (result?.protein) {
+        metrics.protein = result.protein;
+      }
+      if (result?.minerals) {
+        metrics.minerals = result.minerals;
+      }
+
+      return {
+        metrics,
+        ocrText: result.ocrText || undefined,
+      };
+    } catch (error) {
+      this.logger.error('Failed to analyze InBody image with OpenAI Vision', error);
+      throw error;
+    }
   }
 
   /**

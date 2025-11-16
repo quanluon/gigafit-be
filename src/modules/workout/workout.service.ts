@@ -1,5 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { WorkoutRepository, WorkoutPlan, WorkoutDay, ExerciseRepository } from '../../repositories';
+import {
+  WorkoutRepository,
+  WorkoutPlan,
+  WorkoutDay,
+  ExerciseRepository,
+  InbodyResultRepository,
+} from '../../repositories';
 import { DayOfWeek, PlanSource } from '../../common/enums';
 import { AIService } from '../ai/ai.service';
 import { GeneratePlanDto } from './dto/generate-plan.dto';
@@ -17,11 +23,19 @@ export class WorkoutService {
     private readonly workoutRepository: WorkoutRepository,
     private readonly exerciseRepository: ExerciseRepository,
     private readonly aiService: AIService,
+    private readonly inbodyResultRepository: InbodyResultRepository,
   ) {}
 
   async generatePlan(userId: string, generatePlanDto: GeneratePlanDto): Promise<WorkoutPlan> {
     // Generate plan using AI
-    const generatedPlan = await this.aiService.generateWorkoutPlan(generatePlanDto);
+    const latestInbody = await this.inbodyResultRepository.findLatestCompleted(userId);
+    const generatedPlan = await this.aiService.generateWorkoutPlan({
+      ...generatePlanDto,
+      inbodySummary: latestInbody?.aiAnalysis
+        ? latestInbody.aiAnalysis.en || latestInbody.aiAnalysis.vi
+        : undefined,
+      inbodyMetrics: latestInbody?.metrics,
+    });
 
     // Get current week and year
     const now = new Date();

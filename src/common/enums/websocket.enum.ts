@@ -21,6 +21,18 @@ export enum WebSocketEvent {
   EXERCISE_CRAWL_PROGRESS = 'exercise-crawl-progress',
   EXERCISE_CRAWL_COMPLETE = 'exercise-crawl-complete',
   EXERCISE_CRAWL_ERROR = 'exercise-crawl-error',
+
+  // Inbody OCR events
+  INBODY_OCR_STARTED = 'inbody-ocr-started',
+  INBODY_OCR_PROGRESS = 'inbody-ocr-progress',
+  INBODY_OCR_COMPLETE = 'inbody-ocr-complete',
+  INBODY_OCR_ERROR = 'inbody-ocr-error',
+
+  // InBody scan events
+  INBODY_SCAN_STARTED = 'inbody.scan.started',
+  INBODY_SCAN_PROGRESS = 'inbody.scan.progress',
+  INBODY_SCAN_COMPLETE = 'inbody.scan.complete',
+  INBODY_SCAN_ERROR = 'inbody.scan.error',
 }
 
 export enum WebSocketRoom {

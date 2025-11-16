@@ -7,6 +7,8 @@ import { Award, AwardSchema } from './schemas/award.schema';
 import { WeightLog, WeightLogSchema } from './schemas/weight-log.schema';
 import { MealPlan, MealPlanSchema } from './schemas/meal-plan.schema';
 import { Exercise, ExerciseSchema } from './schemas/exercise.schema';
+import { InbodyResult, InbodyResultSchema } from './schemas/inbody-result.schema';
+import { InbodyResultRepository } from './inbody-result.repository';
 import { UserRepository } from './user.repository';
 import { WorkoutRepository } from './workout.repository';
 import { TrainingSessionRepository } from './training-session.repository';
@@ -23,6 +25,7 @@ const schemas = [
   { name: WeightLog.name, schema: WeightLogSchema },
   { name: MealPlan.name, schema: MealPlanSchema },
   { name: Exercise.name, schema: ExerciseSchema },
+  { name: InbodyResult.name, schema: InbodyResultSchema },
 ];
 
 const repositories = [
@@ -33,6 +36,7 @@ const repositories = [
   WeightLogRepository,
   MealPlanRepository,
   ExerciseRepository,
+  InbodyResultRepository,
 ];
 
 @Global()

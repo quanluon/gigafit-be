@@ -10,6 +10,7 @@ import {
   GeneratePlanRequest,
   GeneratedPlan,
 } from './strategies/ai-strategy.interface';
+import { InbodyMetricsSummary, Translatable } from '../../common/interfaces';
 
 /**
  * AI Service with Strategy Pattern
@@ -29,8 +30,8 @@ export class AIService {
   ) {
     // Initialize strategy map
     this.strategies = new Map<AIProvider, IAIStrategy>([
-      [AIProvider.OPENAI, this.openAIStrategy],
-      [AIProvider.GEMINI, this.geminiStrategy],
+      [AIProvider.OPENAI, this.openAIStrategy as IAIStrategy],
+      [AIProvider.GEMINI, this.geminiStrategy as IAIStrategy],
     ]);
 
     // Set initial strategy from config
@@ -69,6 +70,23 @@ export class AIService {
    */
   getCurrentProvider(): string {
     return this.strategy.getProviderName();
+  }
+
+  async generateInbodyAnalysis(
+    metrics: InbodyMetricsSummary,
+    rawText?: string,
+  ): Promise<Translatable> {
+    return this.strategy.generateInbodyAnalysis(metrics, rawText);
+  }
+
+  /**
+   * Analyze InBody image from URL using AI vision
+   */
+  async analyzeInbodyImage(imageUrl: string): Promise<{
+    metrics: InbodyMetricsSummary;
+    ocrText?: string;
+  }> {
+    return this.strategy.analyzeInbodyImage(imageUrl);
   }
 
   /**

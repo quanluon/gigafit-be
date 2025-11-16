@@ -55,6 +55,7 @@ export class SubscriptionGuard implements CanActivate {
     const limits = SUBSCRIPTION_LIMITS[plan as keyof typeof SUBSCRIPTION_LIMITS] || {
       workout: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].workout,
       meal: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].meal,
+      inbody: SUBSCRIPTION_LIMITS[SubscriptionPlan.FREE].inbody,
     };
 
     let used: number;
@@ -66,6 +67,9 @@ export class SubscriptionGuard implements CanActivate {
     } else if (generationType === GenerationType.MEAL) {
       used = user.subscription?.mealGeneration?.used || 0;
       limit = user.subscription?.mealGeneration?.limit || limits.meal;
+    } else if (generationType === GenerationType.INBODY) {
+      used = user.subscription?.inbodyScan?.used || 0;
+      limit = user.subscription?.inbodyScan?.limit || limits.inbody;
     } else {
       // If no type specified, allow (for backward compatibility)
       return true;
@@ -134,6 +138,9 @@ export class SubscriptionGuard implements CanActivate {
         }
         if (user.subscription.mealGeneration) {
           user.subscription.mealGeneration.used = 0;
+        }
+        if (user.subscription.inbodyScan) {
+          user.subscription.inbodyScan.used = 0;
         }
       }
     }

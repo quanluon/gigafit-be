@@ -3,6 +3,10 @@ import { Document, FilterQuery, Model, QueryOptions, UpdateQuery } from 'mongoos
 export abstract class BaseRepository<T extends Document> {
   constructor(protected readonly model: Model<T>) {}
 
+  get baseModel(): Model<T> {
+    return this.model;
+  }
+
   async create(data: Partial<T>): Promise<T> {
     const entity = new this.model(data);
     return entity.save();

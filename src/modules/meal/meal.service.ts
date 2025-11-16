@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { MealPlanRepository, MealPlan } from '../../repositories';
+import { MealPlanRepository, MealPlan, InbodyResultRepository } from '../../repositories';
 import { UserRepository } from '../../repositories';
 import { TDEECalculatorService } from './services/tdee-calculator.service';
 import { DayOfWeek, MealType, Goal } from '../../common/enums';
@@ -13,6 +13,7 @@ export class MealService {
     private readonly userRepository: UserRepository,
     private readonly tdeeCalculator: TDEECalculatorService,
     private readonly aiService: AIService,
+    private readonly inbodyResultRepository: InbodyResultRepository,
   ) {}
 
   async generateMealPlan(
@@ -67,8 +68,18 @@ export class MealService {
     }
 
     // Generate meal schedule
+    const latestInbody = await this.inbodyResultRepository.findLatestCompleted(userId);
+
     const schedule = useAI
-      ? await this.generateMealScheduleWithAI(daysToGenerate, tdeeData, user.goal, notes)
+      ? await this.generateMealScheduleWithAI(
+          daysToGenerate,
+          tdeeData,
+          user.goal,
+          notes,
+          latestInbody?.aiAnalysis
+            ? latestInbody.aiAnalysis.en || latestInbody.aiAnalysis.vi
+            : undefined,
+        )
       : this.generateMealSchedule(daysToGenerate, tdeeData);
 
     // Check if plan already exists for this week
@@ -307,8 +318,9 @@ export class MealService {
     tdeeData: { targetCalories: number; protein: number; carbs: number; fat: number },
     goal: Goal,
     notes?: string,
+    inbodySummary?: string,
   ): Promise<MealPlan['schedule']> {
-    const prompt = this.buildMealPlanPrompt(days, tdeeData, goal, notes);
+    const prompt = this.buildMealPlanPrompt(days, tdeeData, goal, notes, inbodySummary);
 
     try {
       const aiResponse = await this.aiService.generateMealPlan(prompt);
@@ -326,87 +338,35 @@ export class MealService {
     tdeeData: { targetCalories: number; protein: number; carbs: number; fat: number },
     goal: Goal,
     notes?: string,
+    inbodySummary?: string,
   ): string {
-    const goalDescriptions = {
-      [Goal.MUSCLE_GAIN]: 'building muscle mass with a caloric surplus',
-      [Goal.WEIGHT_LOSS]: 'losing weight with a caloric deficit',
-      [Goal.MAINTENANCE]: 'maintaining current weight',
+    const goalMap = {
+      [Goal.MUSCLE_GAIN]: 'muscle gain',
+      [Goal.WEIGHT_LOSS]: 'fat loss',
+      [Goal.MAINTENANCE]: 'maintenance',
     };
 
-    return `Generate a detailed meal plan with the following specifications:
+    let prompt = `Generate meal plan:
 
-**Goal**: ${goalDescriptions[goal]}
-**Target Nutrition (Daily)**:
-- Calories: ${tdeeData.targetCalories} kcal
-- Protein: ${tdeeData.protein}g
-- Carbs: ${tdeeData.carbs}g
-- Fat: ${tdeeData.fat}g
+Goal: ${goalMap[goal]}
+Daily: ${tdeeData.targetCalories} kcal, P${tdeeData.protein}g, C${tdeeData.carbs}g, F${tdeeData.fat}g
+Days: ${days.join(', ')}`;
 
-**Days to Plan**: ${days.join(', ')}
-
-**Requirements**:
-1. Create 4 meals per day: Breakfast, Lunch, Dinner, and Snack
-2. Each meal should have 2-3 food items
-3. Provide bilingual names (English and Vietnamese)
-4. Include portion sizes (e.g., "200g", "1 cup", "2 pieces")
-5. Calculate accurate macros for each food item
-6. Ensure daily totals match the target nutrition (±50 calories acceptable)
-7. Include variety across different days
-8. Consider meal timing for ${goal === Goal.MUSCLE_GAIN ? 'optimal muscle growth' : goal === Goal.WEIGHT_LOSS ? 'satiety and energy' : 'balanced nutrition'}
-${notes ? `9. Follow these user notes/preferences: ${notes}` : ''}
-
-**Output Format** (JSON):
-{
-  "schedule": [
-    {
-      "dayOfWeek": "monday",
-      "meals": [
-        {
-          "type": "breakfast",
-          "items": [
-            {
-              "name": { "en": "Scrambled Eggs", "vi": "Trứng bác" },
-              "description": { "en": "High protein breakfast", "vi": "Bữa sáng giàu protein" },
-              "quantity": "3 eggs (150g)",
-              "macros": { "calories": 210, "protein": 18, "carbs": 2, "fat": 14 }
-            },
-            {
-              "name": { "en": "Whole Wheat Toast", "vi": "Bánh mì nguyên cám" },
-              "description": { "en": "Complex carbs", "vi": "Carb phức hợp" },
-              "quantity": "2 slices",
-              "macros": { "calories": 160, "protein": 6, "carbs": 30, "fat": 2 }
-            }
-          ],
-          "totalMacros": { "calories": 370, "protein": 24, "carbs": 32, "fat": 16 }
-        },
-        {
-          "type": "lunch",
-          "items": [...],
-          "totalMacros": { "calories": 550, "protein": 45, "carbs": 60, "fat": 15 }
-        },
-        {
-          "type": "dinner",
-          "items": [...],
-          "totalMacros": { "calories": 500, "protein": 40, "carbs": 50, "fat": 18 }
-        },
-        {
-          "type": "snack",
-          "items": [...],
-          "totalMacros": { "calories": 120, "protein": 15, "carbs": 8, "fat": 4 }
-        }
-      ],
-      "dailyTotals": { "calories": 1540, "protein": 124, "carbs": 150, "fat": 53 }
+    if (inbodySummary) {
+      prompt += `\nInBody: ${inbodySummary.slice(0, 150)}`;
     }
-  ]
-}
 
-IMPORTANT: 
-- Each meal MUST have "totalMacros" (sum of all items in the meal)
-- Each day MUST have "dailyTotals" (sum of all meals in the day)
-- Include 2-3 items per meal
-- Ensure macros add up correctly
+    if (notes) {
+      prompt += `\nNotes: ${notes.slice(0, 100)}`;
+    }
 
-Generate a comprehensive, nutritionally balanced meal plan that helps achieve the ${goalDescriptions[goal]} goal.`;
+    prompt += `
+
+4 meals/day (breakfast/lunch/dinner/snack), 2-3 items each
+Bilingual names (en/vi), portions, accurate macros
+Vietnamese cuisine, variety, ±50 kcal daily target`;
+
+    return prompt;
   }
 
   private getWeekNumber(date: Date): number {

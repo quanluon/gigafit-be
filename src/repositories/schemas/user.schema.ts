@@ -37,6 +37,12 @@ export class SubscriptionInfo {
     default: () => ({ used: 0 }),
   })
   mealGeneration!: GenerationUsage;
+
+  @Prop({
+    type: GenerationUsage,
+    default: () => ({ used: 0 }),
+  })
+  inbodyScan!: GenerationUsage;
 }
 
 @Schema({ timestamps: true })
@@ -85,6 +91,7 @@ export class User extends Document {
       periodStart: new Date(),
       workoutGeneration: { used: 0, limit: 3 },
       mealGeneration: { used: 0, limit: 3 },
+      inbodyScan: { used: 0, limit: 1 },
     }),
   })
   subscription!: SubscriptionInfo;

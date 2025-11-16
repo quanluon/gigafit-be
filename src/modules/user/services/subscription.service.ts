@@ -18,31 +18,23 @@ export class SubscriptionService {
       return;
     }
 
-    if (type === GenerationType.WORKOUT) {
-      const newUsage = (user.subscription?.workoutGeneration?.used || 0) + 1;
-      await this.userRepository.update(userId, {
-        subscription: {
-          ...user.subscription,
-          workoutGeneration: {
-            ...user.subscription?.workoutGeneration,
-            used: newUsage,
-          },
-        },
-      });
-      this.logger.log(`Incremented workout AI generation usage for user ${userId}: ${newUsage}`);
-    } else if (type === GenerationType.MEAL) {
-      const newUsage = (user.subscription?.mealGeneration?.used || 0) + 1;
-      await this.userRepository.update(userId, {
-        subscription: {
-          ...user.subscription,
-          mealGeneration: {
-            ...user.subscription?.mealGeneration,
-            used: newUsage,
-          },
-        },
-      });
-      this.logger.log(`Incremented meal AI generation usage for user ${userId}: ${newUsage}`);
+    const usageKey = this.getUsageKey(type);
+    if (!usageKey) {
+      return;
     }
+
+    const newUsage = (user.subscription?.[usageKey]?.used || 0) + 1;
+    await this.userRepository.update(userId, {
+      subscription: {
+        ...user.subscription,
+        [usageKey]: {
+          ...user.subscription?.[usageKey],
+          used: newUsage,
+        },
+      } as never,
+    });
+
+    this.logger.log(`Incremented ${type} generation usage for user ${userId}: ${newUsage}`);
   }
 
   /**
@@ -65,16 +57,14 @@ export class SubscriptionService {
     const plan = user.subscription?.plan || SubscriptionPlan.FREE;
     const limits = SUBSCRIPTION_LIMITS[plan];
 
-    let used: number;
-    let limit: number;
-
-    if (type === GenerationType.WORKOUT) {
-      used = user.subscription?.workoutGeneration?.used || 0;
-      limit = user.subscription?.workoutGeneration?.limit || limits.workout;
-    } else {
-      used = user.subscription?.mealGeneration?.used || 0;
-      limit = user.subscription?.mealGeneration?.limit || limits.meal;
+    const usageKey = this.getUsageKey(type);
+    if (!usageKey) {
+      throw new Error('Unsupported generation type');
     }
+    const limitKey = this.getLimitKey(type);
+
+    const used = user.subscription?.[usageKey]?.used || 0;
+    const limit = user.subscription?.[usageKey]?.limit || limits[limitKey];
 
     const remaining = limit === -1 ? -1 : Math.max(0, limit - used);
 
@@ -102,6 +92,7 @@ export class SubscriptionService {
     periodStart: Date;
     workout: { used: number; limit: number; remaining: number };
     meal: { used: number; limit: number; remaining: number };
+    inbody: { used: number; limit: number; remaining: number };
   }> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -110,6 +101,7 @@ export class SubscriptionService {
 
     const workoutStats = await this.getRemainingGenerations(userId, GenerationType.WORKOUT);
     const mealStats = await this.getRemainingGenerations(userId, GenerationType.MEAL);
+    const inbodyStats = await this.getRemainingGenerations(userId, GenerationType.INBODY);
 
     return {
       plan: user.subscription?.plan || SubscriptionPlan.FREE,
@@ -123,6 +115,11 @@ export class SubscriptionService {
         used: mealStats.used,
         limit: mealStats.limit,
         remaining: mealStats.remaining,
+      },
+      inbody: {
+        used: inbodyStats.used,
+        limit: inbodyStats.limit,
+        remaining: inbodyStats.remaining,
       },
     };
   }
@@ -149,6 +146,10 @@ export class SubscriptionService {
         mealGeneration: {
           ...user.subscription?.mealGeneration,
           limit: limits.meal,
+        },
+        inbodyScan: {
+          ...user.subscription?.inbodyScan,
+          limit: limits.inbody,
         },
       },
     });
@@ -179,9 +180,41 @@ export class SubscriptionService {
           ...user.subscription?.mealGeneration,
           used: 0,
         },
+        inbodyScan: {
+          ...user.subscription?.inbodyScan,
+          used: 0,
+        },
       },
     });
 
     this.logger.log(`Reset subscription period for user ${userId}`);
+  }
+
+  private getUsageKey(
+    type: GenerationType,
+  ): 'workoutGeneration' | 'mealGeneration' | 'inbodyScan' | null {
+    switch (type) {
+      case GenerationType.WORKOUT:
+        return 'workoutGeneration';
+      case GenerationType.MEAL:
+        return 'mealGeneration';
+      case GenerationType.INBODY:
+        return 'inbodyScan';
+      default:
+        return null;
+    }
+  }
+
+  private getLimitKey(type: GenerationType): 'workout' | 'meal' | 'inbody' {
+    switch (type) {
+      case GenerationType.WORKOUT:
+        return 'workout';
+      case GenerationType.MEAL:
+        return 'meal';
+      case GenerationType.INBODY:
+        return 'inbody';
+      default:
+        return 'workout';
+    }
   }
 }

@@ -27,6 +27,7 @@ import { CrawlerModule } from './modules/crawler/crawler.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ExerciseModule } from './modules/exercise/exercise.module';
+import { InbodyModule } from './modules/inbody/inbody.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ExerciseModule } from './modules/exercise/exercise.module';
     QueueModule,
     NotificationModule,
     ExerciseModule,
+    InbodyModule,
   ],
   providers: [
     {

@@ -24,6 +24,7 @@ export class UserService {
         periodStart: new Date(),
         workoutGeneration: { used: 0 },
         mealGeneration: { used: 0 },
+        inbodyScan: { used: 0 },
       };
       await this.userRepository.update(id, { subscription });
       user.subscription = subscription;
