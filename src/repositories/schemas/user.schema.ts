@@ -87,11 +87,12 @@ export class User extends Document {
   scheduleDays!: DayOfWeek[];
 
   @Prop({ type: String, default: Language.EN })
-  language!: string; // 'en' or 'vi'
+  language!: Language; // 'en' or 'vi'
 
   // Subscription (nested structure)
   @Prop({
     type: SubscriptionInfo,
+    // NOTE: don't set limit here, it will be set in the subscription guard
     default: () => ({
       plan: SubscriptionPlan.FREE,
       periodStart: new Date(),

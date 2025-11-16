@@ -202,6 +202,7 @@ export class TrainingService {
         $gte: startDate,
         $lte: endDate,
       },
+      status: SessionStatus.COMPLETED,
     });
   }
 }
