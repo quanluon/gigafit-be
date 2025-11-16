@@ -1,16 +1,16 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BaseController } from '../../common/base';
-import { InbodyService } from './inbody.service';
-import { S3Service } from './s3.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SubscriptionGuard, GenerationTypeDecorator } from '../user/guards/subscription.guard';
 import { GenerationType } from '../../common/enums';
-import { ProcessInbodyDto } from './dto/process-inbody.dto';
-import { ScanInbodyDto } from './dto/scan-inbody.dto';
-import { AnalyzeBodyPhotoDto } from './dto/analyze-body-photo.dto';
 import { ApiResponse as ApiResponseType } from '../../common/interfaces';
 import { InbodyResult } from '../../repositories/schemas';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { GenerationTypeDecorator, SubscriptionGuard } from '../user/guards/subscription.guard';
+import { AnalyzeBodyPhotoDto } from './dto/analyze-body-photo.dto';
+import { ProcessInbodyDto } from './dto/process-inbody.dto';
+import { ScanInbodyDto } from './dto/scan-inbody.dto';
+import { InbodyService } from './inbody.service';
+import { S3Service } from './s3.service';
 
 interface RequestWithUser extends Request {
   user: { userId: string };
@@ -106,8 +106,6 @@ export class InbodyController extends BaseController {
   }
 
   @Post('body-photo')
-  @UseGuards(SubscriptionGuard)
-  @GenerationTypeDecorator(GenerationType.BODY_PHOTO)
   @ApiOperation({ summary: 'Analyze body photo to estimate body composition metrics' })
   async analyzeBodyPhoto(
     @Req() req: RequestWithUser,
