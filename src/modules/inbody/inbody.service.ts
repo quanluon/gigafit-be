@@ -82,8 +82,20 @@ export class InbodyService {
           message: 'Đang đọc và phân tích hình ảnh...',
         });
 
-      // Use AI vision to analyze the image
-      const result = await this.aiService.analyzeInbodyImage(s3Url);
+      // Find nearest previous InBody result with same source type for comparison
+      const previousResult = await this.inbodyResultRepository.baseModel
+        .findOne({
+          userId,
+          sourceType: InbodySourceType.INBODY_SCAN,
+          status: InbodyStatus.COMPLETED,
+          metrics: { $exists: true, $ne: null },
+        })
+        .sort({ takenAt: -1 })
+        .lean<InbodyResult>()
+        .exec();
+
+      // Use AI vision to analyze the image with previous result for comparison
+      const result = await this.aiService.analyzeInbodyImage(s3Url, previousResult);
 
       // Emit progress: extracting metrics
       this.notificationGateway.server

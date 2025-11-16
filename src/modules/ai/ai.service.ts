@@ -82,11 +82,17 @@ export class AIService {
   /**
    * Analyze InBody image from URL using AI vision
    */
-  async analyzeInbodyImage(imageUrl: string): Promise<{
+  async analyzeInbodyImage(
+    imageUrl: string,
+    previousResult?: {
+      metrics?: InbodyMetricsSummary;
+      takenAt?: Date;
+    } | null,
+  ): Promise<{
     metrics: InbodyMetricsSummary;
     ocrText?: string;
   }> {
-    return this.strategy.analyzeInbodyImage(imageUrl);
+    return this.strategy.analyzeInbodyImage(imageUrl, previousResult);
   }
 
   /**

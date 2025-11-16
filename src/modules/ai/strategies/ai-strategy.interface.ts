@@ -74,7 +74,13 @@ export interface IAIStrategy {
    * @param imageUrl - URL of the InBody image
    * @returns Extracted metrics and OCR text as JSON
    */
-  analyzeInbodyImage(imageUrl: string): Promise<{
+  analyzeInbodyImage(
+    imageUrl: string,
+    previousResult?: {
+      metrics?: InbodyMetricsSummary;
+      takenAt?: Date;
+    } | null,
+  ): Promise<{
     metrics: InbodyMetricsSummary;
     ocrText?: string;
   }>;

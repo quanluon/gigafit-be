@@ -284,19 +284,56 @@ Bilingual (en/vi), accurate macros.
 
   /**
    * Analyze InBody image from URL using OpenAI Vision
+   * Optionally compares with previous InBody result for accuracy
    */
-  async analyzeInbodyImage(imageUrl: string): Promise<{
+  async analyzeInbodyImage(
+    imageUrl: string,
+    previousResult?: {
+      metrics?: InbodyMetricsSummary;
+      takenAt?: Date;
+    } | null,
+  ): Promise<{
     metrics: InbodyMetricsSummary;
     ocrText?: string;
   }> {
     try {
       const llmWithStructuredOutput = this.llm.withStructuredOutput(InbodyVisionSchema);
 
-      const prompt = `Extract InBody metrics from image. Values may be Vietnamese/English.
+      let prompt = `Extract InBody metrics from image. Values may be Vietnamese/English.
 
 Find: Weight, Skeletal Muscle Mass, Body Fat Mass/%, BMI, Visceral Fat, BMR/TDEE, Total Body Water, Protein, Minerals.
 
 Return JSON per schema. Include OCR text if readable.`;
+
+      // Add comparison context if previous result exists
+      if (previousResult?.metrics) {
+        const previousMetrics = previousResult.metrics;
+        const previousDate = previousResult.takenAt
+          ? new Date(previousResult.takenAt).toLocaleDateString()
+          : 'previous scan';
+        const daysDiff = previousResult.takenAt
+          ? Math.round(
+              (Date.now() - new Date(previousResult.takenAt).getTime()) / (1000 * 60 * 60 * 24),
+            )
+          : null;
+
+        const comparisonText = `
+IMPORTANT: Compare with previous InBody result from ${previousDate}${daysDiff ? ` (${daysDiff} days ago)` : ''}:
+${previousMetrics.weight ? `- Weight: ${previousMetrics.weight} kg` : ''}
+${previousMetrics.bodyFatPercent ? `- Body Fat %: ${previousMetrics.bodyFatPercent}%` : ''}
+${previousMetrics.skeletalMuscleMass ? `- Skeletal Muscle Mass: ${previousMetrics.skeletalMuscleMass} kg` : ''}
+${previousMetrics.bmi ? `- BMI: ${previousMetrics.bmi}` : ''}
+${previousMetrics.visceralFatLevel ? `- Visceral Fat Level: ${previousMetrics.visceralFatLevel}` : ''}
+${previousMetrics.basalMetabolicRate ? `- BMR: ${previousMetrics.basalMetabolicRate} kcal/day` : ''}
+
+Use this previous data as a reference to:
+1. Ensure extracted values are consistent and realistic
+2. Identify any significant changes or discrepancies
+3. Improve accuracy by cross-referencing with known values
+4. Fill in missing fields if the previous scan had those values and they seem reasonable`;
+
+        prompt += comparisonText;
+      }
 
       const message = new HumanMessage({
         content: [
@@ -309,8 +346,33 @@ Return JSON per schema. Include OCR text if readable.`;
         return await llmWithStructuredOutput.invoke([message]);
       });
 
-      // Convert to InbodyMetricsSummary, filtering out zero/missing values
+      // Convert to InbodyMetricsSummary
       const metrics: InbodyMetricsSummary = { ...result };
+
+      // Update missing fields with previous values if reasonable
+      if (previousResult?.metrics) {
+        const prev = previousResult.metrics;
+        // Only use previous values if current extraction is missing or zero
+        if (!metrics.weight && prev.weight) metrics.weight = prev.weight;
+        if (!metrics.bmi && prev.bmi) metrics.bmi = prev.bmi;
+        if (!metrics.bodyFatPercent && prev.bodyFatPercent)
+          metrics.bodyFatPercent = prev.bodyFatPercent;
+        if (!metrics.skeletalMuscleMass && prev.skeletalMuscleMass)
+          metrics.skeletalMuscleMass = prev.skeletalMuscleMass;
+        if (!metrics.bodyFatMass && prev.bodyFatMass) metrics.bodyFatMass = prev.bodyFatMass;
+        if (!metrics.visceralFatLevel && prev.visceralFatLevel)
+          metrics.visceralFatLevel = prev.visceralFatLevel;
+        if (!metrics.basalMetabolicRate && prev.basalMetabolicRate)
+          metrics.basalMetabolicRate = prev.basalMetabolicRate;
+        if (!metrics.totalBodyWater && prev.totalBodyWater)
+          metrics.totalBodyWater = prev.totalBodyWater;
+        if (!metrics.protein && prev.protein) metrics.protein = prev.protein;
+        if (!metrics.minerals && prev.minerals) metrics.minerals = prev.minerals;
+      }
+
+      this.logger.log(
+        `InBody image analysis completed${previousResult ? ' (with comparison)' : ''}. Extracted ${Object.keys(metrics).length} metrics.`,
+      );
 
       return {
         metrics,
