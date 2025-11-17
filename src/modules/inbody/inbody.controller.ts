@@ -86,8 +86,6 @@ export class InbodyController extends BaseController {
   }
 
   @Post('process')
-  @UseGuards(SubscriptionGuard)
-  @GenerationTypeDecorator(GenerationType.INBODY)
   @ApiOperation({ summary: 'Process InBody scan with OCR text from frontend' })
   async process(
     @Req() req: RequestWithUser,
