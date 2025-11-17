@@ -16,6 +16,8 @@ import { TrainingSessionRepository } from './training-session.repository';
 import { UserRepository } from './user.repository';
 import { WeightLogRepository } from './weight-log.repository';
 import { WorkoutRepository } from './workout.repository';
+import { Feedback, FeedbackSchema } from './schemas/feedback.schema';
+import { FeedbackRepository } from './feedback.repository';
 
 const schemas = [
   { name: User.name, schema: UserSchema },
@@ -26,6 +28,7 @@ const schemas = [
   { name: MealPlan.name, schema: MealPlanSchema },
   { name: Exercise.name, schema: ExerciseSchema },
   { name: InbodyResult.name, schema: InbodyResultSchema },
+  { name: Feedback.name, schema: FeedbackSchema },
 ];
 
 const repositories = [
@@ -37,6 +40,7 @@ const repositories = [
   MealPlanRepository,
   ExerciseRepository,
   InbodyResultRepository,
+  FeedbackRepository,
 ];
 
 @Global()

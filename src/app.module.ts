@@ -9,6 +9,7 @@ import {
   jwtConfig,
   aiConfig,
   crawlerConfig,
+  telegramConfig,
 } from './config';
 import { APP_FILTER } from '@nestjs/core';
 import { HttpExceptionFilter } from './common';
@@ -28,12 +29,13 @@ import { QueueModule } from './modules/queue/queue.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ExerciseModule } from './modules/exercise/exercise.module';
 import { InbodyModule } from './modules/inbody/inbody.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, redisConfig, awsConfig, jwtConfig, aiConfig, crawlerConfig],
+      load: [databaseConfig, redisConfig, awsConfig, jwtConfig, aiConfig, crawlerConfig, telegramConfig],
     }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
@@ -52,6 +54,7 @@ import { InbodyModule } from './modules/inbody/inbody.module';
     NotificationModule,
     ExerciseModule,
     InbodyModule,
+    FeedbackModule,
   ],
   providers: [
     {

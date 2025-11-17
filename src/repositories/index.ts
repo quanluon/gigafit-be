@@ -7,4 +7,5 @@ export * from './weight-log.repository';
 export * from './meal-plan.repository';
 export * from './exercise.repository';
 export * from './inbody-result.repository';
+export * from './feedback.repository';
 export * from './repository.module';

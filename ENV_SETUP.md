@@ -97,6 +97,14 @@ LOG_LEVEL=debug
 SENTRY_DSN=
 
 # ==============================================
+# Telegram Notifications (Optional)
+# ==============================================
+
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+TELEGRAM_FEEDBACK_ENABLED=false
+
+# ==============================================
 # Rate Limiting
 # ==============================================
 
