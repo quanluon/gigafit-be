@@ -10,7 +10,16 @@ export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    return this.userRepository.create(createUserDto);
+    const isBeta = process.env.BETA === 'true';
+    const subscription = {
+      plan: isBeta ? SubscriptionPlan.PREMIUM : SubscriptionPlan.FREE,
+      periodStart: new Date(),
+      workoutGeneration: { used: 0 },
+      mealGeneration: { used: 0 },
+      inbodyScan: { used: 0 },
+      bodyPhotoScan: { used: 0 },
+    };
+    return this.userRepository.create({ ...createUserDto, subscription });
   }
 
   async findById(id: string): Promise<User> {
