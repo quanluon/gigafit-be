@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job, JobStatus as BullJobStatus } from 'bull';
 import { WorkoutGenerationJobData } from './processors/workout-generation.processor';
 import { MealGenerationJobData } from './processors/meal-generation.processor';
+import { InbodyOcrJobData } from './processors/inbody-ocr.processor';
 import { QueueName, JobName, JobStatus } from '../../common/enums';
 
 interface JobStatusResponse {
@@ -22,6 +23,8 @@ export class QueueService {
     private workoutGenerationQueue: Queue<WorkoutGenerationJobData>,
     @InjectQueue(QueueName.MEAL_GENERATION)
     private mealGenerationQueue: Queue<MealGenerationJobData>,
+    @InjectQueue(QueueName.INBODY_OCR)
+    private inbodyOcrQueue: Queue<InbodyOcrJobData>,
   ) {}
 
   /**
@@ -59,6 +62,24 @@ export class QueueService {
     });
 
     this.logger.log(`Added meal generation job ${job.id} for user ${data.userId}`);
+    return job;
+  }
+
+  /**
+   * Add InBody OCR/analysis job to queue
+   */
+  async addInbodyAnalysisJob(data: InbodyOcrJobData): Promise<Job<InbodyOcrJobData>> {
+    const job = await this.inbodyOcrQueue.add(JobName.PROCESS_INBODY_REPORT, data, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
+      removeOnComplete: true,
+      removeOnFail: false,
+    });
+
+    this.logger.log(`Added InBody analysis job ${job.id} for user ${data.userId}`);
     return job;
   }
 
@@ -146,6 +167,22 @@ export class QueueService {
 
     // Get active meal jobs
     const mealJobs = await this.mealGenerationQueue.getJobs(activeStates);
+    // Get active InBody jobs
+    const inbodyJobs = await this.inbodyOcrQueue.getJobs(activeStates);
+    for (const job of inbodyJobs) {
+      if (job.data.userId === userId) {
+        const state = await job.getState();
+        const progress = await job.progress();
+
+        result.push({
+          jobId: job.id?.toString() || '',
+          type: QueueName.INBODY_OCR,
+          status: this.mapBullStatusToJobStatus(state),
+          progress: typeof progress === 'number' ? progress : 0,
+          message: this.getProgressMessage(progress),
+        });
+      }
+    }
     for (const job of mealJobs) {
       if (job.data.userId === userId) {
         const state = await job.getState();

@@ -11,11 +11,6 @@ export class GenerateMealPlanDto {
   @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
-  useAI?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
   fullWeek?: boolean;
 
   @IsOptional()

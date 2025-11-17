@@ -3,12 +3,14 @@ import { BullModule } from '@nestjs/bull';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WorkoutGenerationProcessor } from './processors/workout-generation.processor';
 import { MealGenerationProcessor } from './processors/meal-generation.processor';
+import { InbodyOcrProcessor } from './processors/inbody-ocr.processor';
 import { QueueService } from './queue.service';
 import { QueueName } from '../../common/enums';
 import { WorkoutModule } from '../workout/workout.module';
 import { MealModule } from '../meal/meal.module';
 import { NotificationModule } from '../notification/notification.module';
 import { UserModule } from '../user/user.module';
+import { InbodyModule } from '../inbody/inbody.module';
 
 @Module({
   imports: [
@@ -30,13 +32,17 @@ import { UserModule } from '../user/user.module';
       {
         name: QueueName.MEAL_GENERATION,
       },
+      {
+        name: QueueName.INBODY_OCR,
+      },
     ),
     forwardRef(() => WorkoutModule),
     forwardRef(() => MealModule),
+    forwardRef(() => InbodyModule),
     NotificationModule,
     UserModule,
   ],
-  providers: [WorkoutGenerationProcessor, MealGenerationProcessor, QueueService],
+  providers: [WorkoutGenerationProcessor, MealGenerationProcessor, InbodyOcrProcessor, QueueService],
   exports: [QueueService, BullModule],
 })
 export class QueueModule {}

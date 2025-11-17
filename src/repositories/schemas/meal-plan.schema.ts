@@ -29,6 +29,22 @@ export class MealItem {
 
   @Prop({ type: Macros, required: true })
   macros!: Macros;
+
+  @Prop({
+    type: [
+      {
+        name: Object,
+        quantity: String,
+        notes: Object,
+      },
+    ],
+    required: false,
+  })
+  components?: Array<{
+    name: Translatable;
+    quantity: string;
+    notes: Translatable;
+  }>;
 }
 
 export class Meal {

@@ -26,11 +26,21 @@ export const MacrosSchema = z.object({
 /**
  * Meal item schema (ingredients/food items in a meal)
  */
+export const MealComponentSchema = z.object({
+  name: TranslatableSchema.describe('Ingredient name in English and Vietnamese'),
+  quantity: z.string().describe('Quantity in grams (e.g., "120g", "30g")'),
+  notes: TranslatableSchema.describe('Bilingual preparation note'),
+});
+
 export const MealItemSchema = z.object({
   name: TranslatableSchema.describe('Item name in English and Vietnamese'),
   description: TranslatableSchema.describe('Item description'),
-  quantity: z.string().describe('Quantity (e.g., "200g", "1 cup", "2 pieces")'),
+  quantity: z.string().describe('Serving size for the item (e.g., "1 bowl", "200g")'),
   macros: MacrosSchema.describe('Macros for this item'),
+  components: z
+    .array(MealComponentSchema)
+    .min(1)
+    .describe('Ingredient-level breakdown with gram quantities'),
 });
 
 /**
@@ -69,6 +79,7 @@ export const MealPlanScheduleSchema = z.object({
  */
 export type Translatable = z.infer<typeof TranslatableSchema>;
 export type Macros = z.infer<typeof MacrosSchema>;
+export type MealComponent = z.infer<typeof MealComponentSchema>;
 export type MealItem = z.infer<typeof MealItemSchema>;
 export type Meal = z.infer<typeof MealSchema>;
 export type DailyMealPlan = z.infer<typeof DailyMealPlanSchema>;

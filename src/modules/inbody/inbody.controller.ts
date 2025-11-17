@@ -11,6 +11,7 @@ import { ProcessInbodyDto } from './dto/process-inbody.dto';
 import { ScanInbodyDto } from './dto/scan-inbody.dto';
 import { InbodyService } from './inbody.service';
 import { S3Service } from './s3.service';
+import { QueueService } from '../queue/queue.service';
 
 interface RequestWithUser extends Request {
   user: { userId: string };
@@ -24,6 +25,7 @@ export class InbodyController extends BaseController {
   constructor(
     private readonly inbodyService: InbodyService,
     private readonly s3Service: S3Service,
+    private readonly queueService: QueueService,
   ) {
     super();
   }
@@ -83,6 +85,29 @@ export class InbodyController extends BaseController {
       dto.takenAt ? new Date(dto.takenAt) : undefined,
     );
     return this.success(result, 'InBody image scanned successfully');
+  }
+
+  @Post('analyze')
+  @UseGuards(SubscriptionGuard)
+  @GenerationTypeDecorator(GenerationType.INBODY)
+  @ApiOperation({ summary: 'Upload + analyze InBody report asynchronously' })
+  async analyzeInBackground(
+    @Req() req: RequestWithUser,
+    @Body() dto: ScanInbodyDto,
+  ): Promise<ApiResponseType<{ jobId: string }>> {
+    const job = await this.queueService.addInbodyAnalysisJob({
+      userId: req.user.userId,
+      s3Url: dto.s3Url,
+      originalFilename: dto.originalFilename,
+      takenAt: dto.takenAt,
+    });
+
+    return this.success(
+      {
+        jobId: job.id?.toString() || '',
+      },
+      'InBody analysis started',
+    );
   }
 
   @Post('process')

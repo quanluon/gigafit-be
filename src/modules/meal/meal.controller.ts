@@ -51,7 +51,6 @@ export class MealController extends BaseController {
     const job = await this.queueService.addMealGenerationJob({
       userId: req.user.userId,
       scheduleDays: generateMealPlanDto.scheduleDays,
-      useAI: generateMealPlanDto.useAI,
       fullWeek: generateMealPlanDto.fullWeek,
       notes: generateMealPlanDto.notes,
     });

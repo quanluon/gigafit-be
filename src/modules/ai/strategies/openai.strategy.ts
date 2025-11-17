@@ -163,11 +163,21 @@ Format: Each field should be concise but include specific numbers and estimates.
           const llmWithStructuredOutput = this.llm.withStructuredOutput(MealPlanScheduleSchema);
 
           const promptTemplate = ChatPromptTemplate.fromTemplate(`
-Generate meal plan:
+You are a dedicated personal nutrition coach. Generate a COMPLETE 7-day meal schedule (Monday → Sunday) even if the user only mentions specific days.
 
+GUIDELINES:
+- Each day must include exactly 4 meals: Breakfast, Lunch, Dinner, Snack.
+- Use Vietnamese-inspired dishes, bilingual names/descriptions (en + vi).
+- Every meal must include 2-3 items. Each item quantity MUST be in grams (e.g., “150g phở noodles”, “120g chicken breast”).
+- For EACH meal item you must provide a \`components\` array (min 1 element). Every component describes an ingredient with bilingual name (en/vi), quantity in grams, and bilingual note (or empty strings) for preparation tips. The sum of component grams should match the item quantity.
+- When naming dishes (e.g., Phở gà), break down the ingredients explicitly (noodle grams, protein grams, herbs, broth note). Add short preparation/serving notes such as “lean broth, limit added oil, light seasoning”.
+- Provide detailed macros per item and accurate total macros per meal. Sum of items should match meal totals within ±5%.
+- Daily calories should stay within ±50 kcal of the target provided in {userPrompt}. Maintain macro balance aligned with that target.
+- Highlight dietary cautions when relevant (e.g., “no fatty broth”, “minimal fish sauce”, “grilled instead of fried”).
+- Keep the tone supportive, like a private trainer preparing meals for the user.
+
+INPUT CONTEXT:
 {userPrompt}
-
-Bilingual (en/vi), accurate macros.
 `);
 
           const chain = promptTemplate.pipe(llmWithStructuredOutput);
