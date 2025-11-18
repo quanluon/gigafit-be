@@ -31,7 +31,6 @@ export class Feedback extends Document {
   @Prop()
   ipAddress?: string;
 }
-
 export type FeedbackDocument = Feedback & Document;
 export const FeedbackSchema = SchemaFactory.createForClass(Feedback);
 

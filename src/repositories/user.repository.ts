@@ -9,11 +9,9 @@ export class UserRepository extends BaseRepository<User> {
   constructor(@InjectModel(User.name) userModel: Model<User>) {
     super(userModel);
   }
-
   async findByEmail(email: string): Promise<User | null> {
     return this.findOne({ email });
   }
-
   async findByCognitoSub(cognitoSub: string): Promise<User | null> {
     return this.findOne({ cognitoSub });
   }

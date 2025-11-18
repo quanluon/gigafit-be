@@ -10,14 +10,12 @@ export interface FeedbackMetadata {
   locale?: string;
   appVersion?: string;
 }
-
 @Injectable()
 export class FeedbackService {
   constructor(
     private readonly feedbackRepository: FeedbackRepository,
     private readonly telegramService: TelegramService,
   ) {}
-
   async submitFeedback(
     payload: CreateFeedbackDto,
     metadata: FeedbackMetadata = {},
@@ -36,7 +34,6 @@ export class FeedbackService {
 
     return feedback;
   }
-
   private buildTelegramMessage(feedback: Feedback): string {
     const lines: string[] = [
       '💬 New beta feedback received',
@@ -47,34 +44,26 @@ export class FeedbackService {
     if (feedback.email) {
       lines.push(`Email: ${feedback.email}`);
     }
-
     if (feedback.userId) {
       lines.push(`User ID: ${feedback.userId}`);
     }
-
     if (feedback.path) {
       lines.push(`Path: ${feedback.path}`);
     }
-
     if (feedback.locale) {
       lines.push(`Locale: ${feedback.locale}`);
     }
-
     if (feedback.appVersion) {
       lines.push(`App Version: ${feedback.appVersion}`);
     }
-
     if (feedback.userAgent) {
       lines.push(`UA: ${this.truncate(feedback.userAgent, 120)}`);
     }
-
     if (feedback.ipAddress) {
       lines.push(`IP: ${feedback.ipAddress}`);
     }
-
     return lines.join('\n');
   }
-
   private truncate(value: string, limit: number): string {
     if (value.length <= limit) {
       return value;

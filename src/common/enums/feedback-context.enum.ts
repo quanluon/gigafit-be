@@ -6,4 +6,3 @@ export enum FeedbackContext {
   PROFILE = 'profile',
   OTHER = 'other',
 }
-

@@ -42,7 +42,12 @@ import { InbodyModule } from '../inbody/inbody.module';
     NotificationModule,
     UserModule,
   ],
-  providers: [WorkoutGenerationProcessor, MealGenerationProcessor, InbodyOcrProcessor, QueueService],
+  providers: [
+    WorkoutGenerationProcessor,
+    MealGenerationProcessor,
+    InbodyOcrProcessor,
+    QueueService,
+  ],
   exports: [QueueService, BullModule],
 })
 export class QueueModule {}

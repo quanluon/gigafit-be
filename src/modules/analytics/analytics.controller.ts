@@ -29,7 +29,6 @@ interface ExercisePR {
   maxWeight: number;
   date: string;
 }
-
 @ApiTags('analytics')
 @Controller('analytics')
 @UseGuards(JwtAuthGuard)
@@ -38,7 +37,6 @@ export class AnalyticsController extends BaseController {
   constructor(private readonly analyticsService: AnalyticsService) {
     super();
   }
-
   @Get('weight-history')
   @ApiOperation({ summary: 'Get weight history' })
   async getWeightHistory(
@@ -51,7 +49,6 @@ export class AnalyticsController extends BaseController {
     );
     return this.success(history);
   }
-
   @Post('weight')
   @ApiOperation({ summary: 'Log weight' })
   async logWeight(
@@ -65,21 +62,18 @@ export class AnalyticsController extends BaseController {
     );
     return this.success(log, 'Weight logged successfully');
   }
-
   @Get('progress')
   @ApiOperation({ summary: 'Get progress statistics' })
   async getProgressStats(@Req() req: RequestWithUser): Promise<ApiResponseType<ProgressStats>> {
     const stats = await this.analyticsService.getProgressStats(req.user.userId);
     return this.success(stats);
   }
-
   @Get('prs')
   @ApiOperation({ summary: 'Get personal records' })
   async getExercisePRs(@Req() req: RequestWithUser): Promise<ApiResponseType<ExercisePR[]>> {
     const prs = await this.analyticsService.getExercisePRs(req.user.userId);
     return this.success(prs);
   }
-
   @Get('awards')
   @ApiOperation({ summary: 'Get user awards' })
   async getAwards(
@@ -92,7 +86,6 @@ export class AnalyticsController extends BaseController {
     );
     return this.success(awards);
   }
-
   @Get('awards/top')
   @ApiOperation({ summary: 'Get top awards' })
   async getTopAwards(

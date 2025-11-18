@@ -10,6 +10,7 @@ import {
   aiConfig,
   crawlerConfig,
   telegramConfig,
+  firebaseConfig,
 } from './config';
 import { APP_FILTER } from '@nestjs/core';
 import { HttpExceptionFilter } from './common';
@@ -35,7 +36,16 @@ import { FeedbackModule } from './modules/feedback/feedback.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, redisConfig, awsConfig, jwtConfig, aiConfig, crawlerConfig, telegramConfig],
+      load: [
+        databaseConfig,
+        redisConfig,
+        awsConfig,
+        jwtConfig,
+        aiConfig,
+        crawlerConfig,
+        telegramConfig,
+        firebaseConfig,
+      ],
     }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),

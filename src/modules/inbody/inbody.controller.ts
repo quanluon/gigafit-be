@@ -16,7 +16,6 @@ import { QueueService } from '../queue/queue.service';
 interface RequestWithUser extends Request {
   user: { userId: string };
 }
-
 @ApiTags('inbody')
 @Controller('inbody')
 @UseGuards(JwtAuthGuard)
@@ -29,7 +28,6 @@ export class InbodyController extends BaseController {
   ) {
     super();
   }
-
   @Get()
   @ApiOperation({ summary: 'List InBody results' })
   async list(
@@ -44,7 +42,6 @@ export class InbodyController extends BaseController {
     );
     return this.success(results);
   }
-
   @Get(':id')
   @ApiOperation({ summary: 'Get InBody result detail' })
   async detail(
@@ -54,7 +51,6 @@ export class InbodyController extends BaseController {
     const result = await this.inbodyService.getResult(req.user.userId, id);
     return this.success(result);
   }
-
   @Post('presigned-url')
   @UseGuards(SubscriptionGuard)
   @GenerationTypeDecorator(GenerationType.INBODY)
@@ -69,7 +65,6 @@ export class InbodyController extends BaseController {
     );
     return this.success({ uploadUrl, s3Url }, 'Presigned URL generated');
   }
-
   @Post('scan')
   @UseGuards(SubscriptionGuard)
   @GenerationTypeDecorator(GenerationType.INBODY)
@@ -86,7 +81,6 @@ export class InbodyController extends BaseController {
     );
     return this.success(result, 'InBody image scanned successfully');
   }
-
   @Post('analyze')
   @UseGuards(SubscriptionGuard)
   @GenerationTypeDecorator(GenerationType.INBODY)
@@ -109,7 +103,6 @@ export class InbodyController extends BaseController {
       'InBody analysis started',
     );
   }
-
   @Post('process')
   @ApiOperation({ summary: 'Process InBody scan with OCR text from frontend' })
   async process(
@@ -127,7 +120,6 @@ export class InbodyController extends BaseController {
     );
     return this.success(result, 'InBody scan processed successfully');
   }
-
   @Post('body-photo')
   @ApiOperation({ summary: 'Analyze body photo to estimate body composition metrics' })
   async analyzeBodyPhoto(

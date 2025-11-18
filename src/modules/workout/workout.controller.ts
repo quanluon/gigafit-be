@@ -30,7 +30,6 @@ interface JobResponse {
   jobId: string;
   message: string;
 }
-
 @ApiTags('workout')
 @Controller('workout')
 @UseGuards(JwtAuthGuard)
@@ -42,7 +41,6 @@ export class WorkoutController extends BaseController {
   ) {
     super();
   }
-
   @Post('plan/generate')
   @UseGuards(SubscriptionGuard)
   @GenerationTypeDecorator(GenerationType.WORKOUT)
@@ -64,28 +62,24 @@ export class WorkoutController extends BaseController {
       'Job created successfully',
     );
   }
-
   @Get('plan/generate/status/:jobId')
   @ApiOperation({ summary: 'Get workout plan generation job status' })
   async getGenerationStatus(@Param('jobId') jobId: string): Promise<ApiResponseType<unknown>> {
     const status = await this.queueService.getJobStatus(jobId);
     return this.success(status);
   }
-
   @Get('plan/generate/jobs')
   @ApiOperation({ summary: 'Get all active generation jobs for current user' })
   async getActiveJobs(@Req() req: RequestWithUser): Promise<ApiResponseType<unknown>> {
     const jobs = await this.queueService.getUserActiveJobs(req.user.userId);
     return this.success(jobs);
   }
-
   @Get('plan')
   @ApiOperation({ summary: 'Get current week workout plan' })
   async getCurrentPlan(@Req() req: RequestWithUser): Promise<ApiResponseType<WorkoutPlan>> {
     const plan = await this.workoutService.getCurrentPlan(req.user.userId);
     return this.success(plan);
   }
-
   @Get('plan/week')
   @ApiOperation({ summary: 'Get workout plan by week' })
   async getPlanByWeek(
@@ -100,7 +94,6 @@ export class WorkoutController extends BaseController {
     );
     return this.success(plan);
   }
-
   @Get('plan/day')
   @ApiOperation({ summary: 'Get workout for specific day' })
   async getWorkoutByDay(
@@ -110,7 +103,6 @@ export class WorkoutController extends BaseController {
     const workout = await this.workoutService.getWorkoutByDay(req.user.userId, day);
     return this.success(workout);
   }
-
   @Post('plan/custom')
   @ApiOperation({ summary: 'Create or replace a custom workout plan' })
   async createCustomPlan(
@@ -120,7 +112,6 @@ export class WorkoutController extends BaseController {
     const plan = await this.workoutService.createCustomPlan(req.user.userId, dto);
     return this.success(plan, 'Custom workout plan saved');
   }
-
   @Patch('plan/:planId')
   @ApiOperation({ summary: 'Update an existing workout plan' })
   async updatePlan(
@@ -131,7 +122,6 @@ export class WorkoutController extends BaseController {
     const plan = await this.workoutService.updatePlan(req.user.userId, planId, dto);
     return this.success(plan, 'Workout plan updated');
   }
-
   @Delete('plan/:planId')
   @ApiOperation({ summary: 'Delete an existing workout plan' })
   async deletePlan(

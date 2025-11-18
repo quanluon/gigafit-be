@@ -13,12 +13,10 @@ export class SegmentMeasurement {
   @Prop({ type: Number })
   percentage?: number;
 }
-
 export enum InbodySourceType {
   INBODY_SCAN = 'inbody_scan',
   BODY_PHOTO = 'body_photo',
 }
-
 @Schema({ timestamps: true, collection: 'inbody_results' })
 export class InbodyResult extends Document {
   @Prop({ required: true })
@@ -72,5 +70,4 @@ export class InbodyResult extends Document {
   @Prop()
   errorMessage?: string;
 }
-
 export const InbodyResultSchema = SchemaFactory.createForClass(InbodyResult);

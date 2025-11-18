@@ -68,7 +68,6 @@ export class DailyMealPlan {
   @Prop({ type: Macros, required: true })
   dailyTotals!: Macros;
 }
-
 @Schema({ timestamps: true })
 export class MealPlan extends Document {
   @Prop({ required: true })

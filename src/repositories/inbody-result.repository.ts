@@ -10,7 +10,6 @@ export class InbodyResultRepository extends BaseRepository<InbodyResult> {
   constructor(@InjectModel(InbodyResult.name) model: Model<InbodyResult>) {
     super(model);
   }
-
   async findLatestCompleted(userId: string): Promise<InbodyResult | null> {
     return this.model
       .findOne({ userId, status: InbodyStatus.COMPLETED })

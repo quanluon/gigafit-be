@@ -39,5 +39,4 @@ async function bootstrap(): Promise<void> {
   Logger.log(`📚 Swagger docs available at: http://localhost:${port}/api/docs`);
   Logger.log(`🔄 Bull Queue workers are processing background jobs`);
 }
-
 bootstrap();

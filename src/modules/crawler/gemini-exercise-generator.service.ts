@@ -18,7 +18,6 @@ interface GeneratedExercise {
     channelName: string;
   };
 }
-
 @Injectable()
 export class GeminiExerciseGeneratorService {
   private readonly gemini: GoogleGenerativeAI;
@@ -33,7 +32,6 @@ export class GeminiExerciseGeneratorService {
     this.gemini = new GoogleGenerativeAI(apiKey);
     this.model = this.gemini.getGenerativeModel({ model: 'gemini-flash-latest' });
   }
-
   /**
    * Generate exercises for all muscle groups in bulk using Gemini
    */
@@ -48,17 +46,14 @@ export class GeminiExerciseGeneratorService {
       const exercises = await this.generateExercisesForMuscleGroup(group, exercisesPerGroup);
       allExercises.push(...exercises);
     }
-
     // Bulk insert all exercises
     if (allExercises.length > 0) {
       const count = await this.exerciseRepository.bulkInsert(allExercises);
       this.logger.log(`Bulk inserted ${count} exercises into database`);
       return count;
     }
-
     return 0;
   }
-
   /**
    * Generate exercises for specific muscle group
    */
@@ -78,7 +73,6 @@ export class GeminiExerciseGeneratorService {
       if (!jsonMatch) {
         throw new Error('No JSON found in response');
       }
-
       const data = JSON.parse(jsonMatch[0]) as { exercises: GeneratedExercise[] };
 
       // Convert to database format
@@ -102,7 +96,6 @@ export class GeminiExerciseGeneratorService {
       return [];
     }
   }
-
   /**
    * Build prompt for Gemini to generate exercises with real YouTube URLs
    */
@@ -156,7 +149,6 @@ Output as JSON:
 
 Generate ${count} exercises now.`;
   }
-
   /**
    * Extract YouTube thumbnail URL from video URL
    */
@@ -167,7 +159,6 @@ Generate ${count} exercises now.`;
     }
     return '';
   }
-
   /**
    * Verify if YouTube URL exists (optional validation)
    */
@@ -184,7 +175,6 @@ Generate ${count} exercises now.`;
       return false;
     }
   }
-
   /**
    * Extract video ID from URL
    */
@@ -192,7 +182,6 @@ Generate ${count} exercises now.`;
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
     return match ? match[1] : null;
   }
-
   /**
    * Generate exercises and verify URLs
    */
@@ -213,7 +202,6 @@ Generate ${count} exercises now.`;
         this.logger.warn(`Invalid YouTube URL: ${exercise.videoUrl}`);
       }
     }
-
     this.logger.log(`Verified ${validExercises.length}/${exercises.length} exercises`);
     return validExercises;
   }

@@ -15,13 +15,11 @@ export class TelegramService {
     const envEnabled = this.configService.get<boolean>('telegram.enabled');
     this.isEnabled = Boolean(envEnabled && this.botToken && this.chatId);
   }
-
   async sendMessage(text: string): Promise<void> {
     if (!this.isEnabled) {
       this.logger.debug('Telegram notifications disabled (missing config)');
       return;
     }
-
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
     try {
       await axios.post(url, {
@@ -34,4 +32,3 @@ export class TelegramService {
     }
   }
 }
-

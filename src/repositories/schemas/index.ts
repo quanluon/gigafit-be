@@ -6,3 +6,4 @@ export * from './weight-log.schema';
 export * from './meal-plan.schema';
 export * from './inbody-result.schema';
 export * from './feedback.schema';
+export * from './device-token.schema';

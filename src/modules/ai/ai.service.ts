@@ -38,7 +38,6 @@ export class AIService {
     const provider = this.configService.get<string>('ai.provider') || AIProvider.OPENAI;
     this.setStrategy(provider as AIProvider);
   }
-
   /**
    * Set AI strategy (OpenAI or Gemini)
    * @param provider - AI provider enum
@@ -51,11 +50,9 @@ export class AIService {
       this.strategy = this.openAIStrategy;
       return;
     }
-
     this.strategy = strategy;
     this.logger.log(`✅ AI Strategy set to: ${this.strategy.getProviderName()}`);
   }
-
   /**
    * Get current AI strategy
    * @returns Current AI strategy
@@ -63,7 +60,6 @@ export class AIService {
   getStrategy(): IAIStrategy {
     return this.strategy;
   }
-
   /**
    * Get current AI provider name
    * @returns Provider name (e.g., 'OpenAI', 'Gemini')
@@ -71,14 +67,12 @@ export class AIService {
   getCurrentProvider(): string {
     return this.strategy.getProviderName();
   }
-
   async generateInbodyAnalysis(
     metrics: InbodyMetricsSummary,
     rawText?: string,
   ): Promise<InbodyAnalysis> {
     return this.strategy.generateInbodyAnalysis(metrics, rawText);
   }
-
   /**
    * Analyze InBody image from URL using AI vision
    */
@@ -94,14 +88,12 @@ export class AIService {
   }> {
     return this.strategy.analyzeInbodyImage(imageUrl, previousResult);
   }
-
   /**
    * Analyze body photo from URL using AI vision to estimate body composition
    */
   async analyzeBodyPhoto(imageUrl: string): Promise<InbodyMetricsSummary> {
     return this.strategy.analyzeBodyPhoto(imageUrl);
   }
-
   /**
    * Generate workout plan using current strategy with automatic fallback
    */
@@ -129,11 +121,9 @@ export class AIService {
         const fallbackPlan = await this.tryFallbackWorkout(request);
         return await this.validateAndEnhancePlan(fallbackPlan, request.scheduleDays);
       }
-
       throw error;
     }
   }
-
   /**
    * Generate meal plan using current strategy with automatic fallback
    */
@@ -157,11 +147,9 @@ export class AIService {
         );
         return await this.tryFallbackMeal(prompt);
       }
-
       throw error;
     }
   }
-
   /**
    * Validate and enhance plan with video URLs
    * Common post-processing for all strategies
@@ -180,7 +168,6 @@ export class AIService {
     if (missingDays.length > 0) {
       this.logger.warn(`Missing days detected: ${missingDays.join(', ')}. Adding defaults.`);
     }
-
     // Collect all unique exercise names (avoid N+1 queries)
     const allExerciseNames = new Set<string>();
     for (const day of plan.schedule) {
@@ -188,7 +175,6 @@ export class AIService {
         allExerciseNames.add(exercise.name.en);
       }
     }
-
     // Bulk fetch all exercises from database in ONE query
     const exerciseMap = await this.exerciseRepository.findBulkByNames(Array.from(allExerciseNames));
 
@@ -209,14 +195,11 @@ export class AIService {
             ExerciseVideoDatabase.findVideo(exercise.name.vi);
           this.logger.debug(`[Static] Matched "${exercise.name.en}" to video: ${videoUrl}`);
         }
-
         exercise.videoUrl = videoUrl;
       }
     }
-
     return plan;
   }
-
   /**
    * Try fallback strategy for workout plan generation
    */
@@ -240,7 +223,6 @@ export class AIService {
       throw fallbackError;
     }
   }
-
   /**
    * Try fallback strategy for meal plan generation
    */

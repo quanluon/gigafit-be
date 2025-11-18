@@ -8,7 +8,6 @@ interface JwtPayload {
   sub: string;
   email: string;
 }
-
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -21,7 +20,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: configService.get<string>('jwt.secret'),
     });
   }
-
   async validate(payload: JwtPayload): Promise<{ userId: string; email: string }> {
     const user = await this.userService.findByCognitoSub(payload.sub);
     if (!user) {

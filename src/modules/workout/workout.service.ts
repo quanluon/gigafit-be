@@ -26,7 +26,6 @@ export class WorkoutService {
     private readonly aiService: AIService,
     private readonly inbodyResultRepository: InbodyResultRepository,
   ) {}
-
   async generatePlan(userId: string, generatePlanDto: GeneratePlanDto): Promise<WorkoutPlan> {
     // Generate plan using AI
     const latestInbody = await this.inbodyResultRepository.findLatestCompleted(userId);
@@ -84,7 +83,6 @@ export class WorkoutService {
       }
       return updatedPlan;
     }
-
     // Create new plan
     return this.workoutRepository.create({
       userId,
@@ -95,7 +93,6 @@ export class WorkoutService {
       schedule: generatedPlan.schedule,
     });
   }
-
   async getCurrentPlan(userId: string): Promise<WorkoutPlan> {
     const plan = await this.workoutRepository.findCurrentWeekPlan(userId);
     if (!plan) {
@@ -103,7 +100,6 @@ export class WorkoutService {
     }
     return plan;
   }
-
   async getPlanByWeek(userId: string, week: number, year: number): Promise<WorkoutPlan> {
     const plan = await this.workoutRepository.findByUserAndWeek(userId, week, year);
     if (!plan) {
@@ -111,17 +107,14 @@ export class WorkoutService {
     }
     return plan;
   }
-
   async getWorkoutByDay(userId: string, day: DayOfWeek): Promise<WorkoutDay | null> {
     const plan = await this.workoutRepository.findCurrentWeekPlan(userId);
     if (!plan) {
       return null;
     }
-
     const workout = plan.schedule.find((w) => w.dayOfWeek === day);
     return workout || null;
   }
-
   async updatePlan(
     userId: string,
     planId: string,
@@ -131,43 +124,35 @@ export class WorkoutService {
     if (!plan || plan.userId !== userId) {
       throw new NotFoundException('Workout plan not found');
     }
-
     const updatePayload: Partial<WorkoutPlan> = {};
 
     if (updateData.title !== undefined) {
       updatePayload.title = updateData.title;
     }
-
     if (updateData.schedule) {
       updatePayload.schedule = await this.normalizeSchedule(updateData.schedule);
     }
-
     if (updateData.schedule && plan.source !== PlanSource.CUSTOM) {
       updatePayload.source = PlanSource.CUSTOM;
     }
-
     const updatedPlan = await this.workoutRepository.update(planId, updatePayload);
     if (!updatedPlan) {
       throw new NotFoundException('Failed to update workout plan');
     }
     return updatedPlan;
   }
-
   async deletePlan(userId: string, planId: string): Promise<boolean> {
     const plan = await this.workoutRepository.findById(planId);
     if (!plan || plan.userId !== userId) {
       throw new NotFoundException('Workout plan not found');
     }
-
     return this.workoutRepository.delete(planId);
   }
-
   private getWeekNumber(date: Date): number {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
     const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   }
-
   async createCustomPlan(userId: string, planData: CreateCustomPlanDto): Promise<WorkoutPlan> {
     const now = new Date();
     const week = this.getWeekNumber(now);
@@ -192,7 +177,6 @@ export class WorkoutService {
       }
       return updatedPlan;
     }
-
     // Create new custom plan
     return this.workoutRepository.create({
       userId,
@@ -201,7 +185,6 @@ export class WorkoutService {
       ...basePayload,
     } as WorkoutPlan);
   }
-
   private async normalizeSchedule(schedule: WorkoutDayInputDto[]): Promise<WorkoutDay[]> {
     const mappedSchedule: WorkoutDay[] = schedule.map((day) => ({
       dayOfWeek: day.dayOfWeek,
@@ -218,7 +201,6 @@ export class WorkoutService {
 
     return this.hydrateExercises(mappedSchedule);
   }
-
   private async hydrateExercises(schedule: WorkoutDay[]): Promise<WorkoutDay[]> {
     const exerciseIds = schedule
       .flatMap((day) => day.exercises)
@@ -242,14 +224,12 @@ export class WorkoutService {
       }),
     }));
   }
-
   private ensureDescription(exercise: WorkoutExercise): WorkoutExercise {
     return {
       ...exercise,
       description: exercise.description ?? { en: '', vi: '' },
     };
   }
-
   private mergeExerciseData(
     exercise: WorkoutExercise,
     catalogExercise: CatalogExercise,

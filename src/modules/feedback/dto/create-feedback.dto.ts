@@ -38,4 +38,3 @@ export class CreateFeedbackDto {
   @IsString()
   appVersion?: string;
 }
-

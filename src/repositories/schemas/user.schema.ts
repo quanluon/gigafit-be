@@ -50,7 +50,6 @@ export class SubscriptionInfo {
   })
   bodyPhotoScan!: GenerationUsage;
 }
-
 @Schema({ timestamps: true })
 export class User extends Document {
   @Prop({ required: true, unique: true })

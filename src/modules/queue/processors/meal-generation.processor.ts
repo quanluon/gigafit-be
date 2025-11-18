@@ -2,17 +2,16 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { MealService } from '../../meal/meal.service';
-import { NotificationGateway } from '../../notification/notification.gateway';
 import { SubscriptionService } from '../../user/services/subscription.service';
 import {
   DayOfWeek,
   QueueName,
   JobName,
   JobProgress,
-  WebSocketEvent,
   GenerationType,
 } from '../../../common/enums';
 import { MealPlan } from '../../../repositories';
+import { NotificationFacade } from '../../notification/notification.facade';
 
 export interface MealGenerationJobData {
   userId: string;
@@ -25,17 +24,15 @@ interface MealGenerationResult {
   planId: string;
   userId: string;
 }
-
 @Processor(QueueName.MEAL_GENERATION)
 export class MealGenerationProcessor {
   private readonly logger = new Logger(MealGenerationProcessor.name);
 
   constructor(
     private readonly mealService: MealService,
-    private readonly notificationGateway: NotificationGateway,
     private readonly subscriptionService: SubscriptionService,
+    private readonly notificationFacade: NotificationFacade,
   ) {}
-
   @Process(JobName.GENERATE_MEAL_PLAN)
   async handleGeneratePlan(job: Job<MealGenerationJobData>): Promise<MealGenerationResult> {
     const { userId, notes } = job.data;
@@ -43,14 +40,7 @@ export class MealGenerationProcessor {
     this.logger.log(`Processing meal plan generation for user ${userId}, job ${job.id}`);
 
     try {
-      // Notify start
       await job.progress(JobProgress.STARTED);
-      this.notificationGateway.sendToUser(userId, WebSocketEvent.MEAL_GENERATION_STARTED, {
-        jobId: job.id || 0,
-        progress: JobProgress.STARTED,
-        message: 'Starting meal plan generation...',
-      });
-
       // Increment usage counter if AI was used
       await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.MEAL);
       this.logger.log(`Incremented meal AI generation usage for user ${userId}`);
@@ -58,23 +48,17 @@ export class MealGenerationProcessor {
       // Generate meal plan (this is the slow part)
       const plan: MealPlan = await this.mealService.generateMealPlan(userId, notes);
 
-      // Update progress: Finalizing
       await job.progress(JobProgress.FINALIZING);
-      this.notificationGateway.sendToUser(userId, WebSocketEvent.MEAL_GENERATION_PROGRESS, {
-        jobId: job.id || 0,
-        progress: JobProgress.FINALIZING,
-        message: 'Finalizing meal plan...',
-      });
 
       // Extract plan ID safely
       const planId = this.extractPlanId(plan);
 
-      // Notify completion
       await job.progress(JobProgress.COMPLETED);
-      this.notificationGateway.sendToUser(userId, WebSocketEvent.MEAL_GENERATION_COMPLETE, {
+      await this.notificationFacade.notifyGenerationComplete({
+        userId,
         jobId: job.id || 0,
+        generationType: GenerationType.MEAL,
         planId,
-        message: 'Your meal plan is ready!',
       });
 
       this.logger.log(`Meal plan generation complete for user ${userId}, job ${job.id}`);
@@ -87,16 +71,16 @@ export class MealGenerationProcessor {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate meal plan';
       this.logger.error(`Meal plan generation failed for user ${userId}:`, error);
 
-      // Notify error
-      this.notificationGateway.sendToUser(userId, WebSocketEvent.MEAL_GENERATION_ERROR, {
+      await this.notificationFacade.notifyGenerationError({
+        userId,
         jobId: job.id || 0,
+        generationType: GenerationType.MEAL,
         error: errorMessage,
       });
 
       throw error; // Bull will mark job as failed
     }
   }
-
   /**
    * Safely extract plan ID from MealPlan document
    */

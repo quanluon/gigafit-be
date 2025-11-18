@@ -13,7 +13,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 interface RequestWithUser extends Request {
   user: { userId: string };
 }
-
 @ApiTags('training')
 @Controller('training')
 @UseGuards(JwtAuthGuard)
@@ -22,7 +21,6 @@ export class TrainingController extends BaseController {
   constructor(private readonly trainingService: TrainingService) {
     super();
   }
-
   @Post('session/start')
   @ApiOperation({ summary: 'Start a new training session' })
   async startSession(
@@ -32,7 +30,6 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.startSession(req.user.userId, startSessionDto);
     return this.success(session, 'Training session started');
   }
-
   @Get('session/active')
   @ApiOperation({ summary: 'Get active training session' })
   async getActiveSession(
@@ -41,7 +38,6 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.getActiveSession(req.user.userId);
     return this.success(session);
   }
-
   @Get('session/:id')
   @ApiOperation({ summary: 'Get training session by ID' })
   async getSession(
@@ -51,7 +47,6 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.getSessionById(req.user.userId, id);
     return this.success(session);
   }
-
   @Patch('session/:id')
   @ApiOperation({ summary: 'Update training session' })
   async updateSession(
@@ -62,7 +57,6 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.updateSession(req.user.userId, id, updateSessionDto);
     return this.success(session, 'Session updated');
   }
-
   @Post('session/:id/log')
   @ApiOperation({ summary: 'Log exercises in training session' })
   async logExercise(
@@ -73,7 +67,6 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.logExercise(req.user.userId, id, logExerciseDto);
     return this.success(session, 'Exercise logged');
   }
-
   @Post('session/:id/complete')
   @ApiOperation({ summary: 'Complete training session' })
   async completeSession(
@@ -83,7 +76,6 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.completeSession(req.user.userId, id);
     return this.success(session, 'Session completed');
   }
-
   @Post('session/:id/cancel')
   @ApiOperation({ summary: 'Cancel training session' })
   async cancelSession(
@@ -93,7 +85,6 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.cancelSession(req.user.userId, id);
     return this.success(session, 'Session cancelled');
   }
-
   @Get('sessions/recent')
   @ApiOperation({ summary: 'Get recent training sessions' })
   async getRecentSessions(
@@ -106,7 +97,6 @@ export class TrainingController extends BaseController {
     );
     return this.success(sessions);
   }
-
   @Get('sessions')
   @ApiOperation({ summary: 'Get all user training sessions' })
   async getUserSessions(
@@ -118,7 +108,6 @@ export class TrainingController extends BaseController {
       : await this.trainingService.getUserSessions(req.user.userId);
     return this.success(sessions);
   }
-
   @Get('sessions/month/:year/:month')
   @ApiOperation({ summary: 'Get training sessions for a specific month' })
   async getSessionsByMonth(

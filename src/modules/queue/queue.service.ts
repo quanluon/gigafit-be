@@ -13,7 +13,6 @@ interface JobStatusResponse {
   result?: unknown;
   failedReason?: string;
 }
-
 @Injectable()
 export class QueueService {
   private readonly logger = new Logger(QueueService.name);
@@ -26,7 +25,6 @@ export class QueueService {
     @InjectQueue(QueueName.INBODY_OCR)
     private inbodyOcrQueue: Queue<InbodyOcrJobData>,
   ) {}
-
   /**
    * Add workout generation job to queue
    */
@@ -46,7 +44,6 @@ export class QueueService {
     this.logger.log(`Added workout generation job ${job.id} for user ${data.userId}`);
     return job;
   }
-
   /**
    * Add meal generation job to queue
    */
@@ -64,7 +61,6 @@ export class QueueService {
     this.logger.log(`Added meal generation job ${job.id} for user ${data.userId}`);
     return job;
   }
-
   /**
    * Add InBody OCR/analysis job to queue
    */
@@ -82,7 +78,6 @@ export class QueueService {
     this.logger.log(`Added InBody analysis job ${job.id} for user ${data.userId}`);
     return job;
   }
-
   /**
    * Get job status
    */
@@ -92,7 +87,6 @@ export class QueueService {
     if (!job) {
       throw new Error('Job not found');
     }
-
     const state = await job.getState();
     const progress = await job.progress();
 
@@ -104,7 +98,6 @@ export class QueueService {
       failedReason: job.failedReason,
     };
   }
-
   /**
    * Get meal job status
    */
@@ -114,7 +107,6 @@ export class QueueService {
     if (!job) {
       throw new Error('Job not found');
     }
-
     const state = await job.getState();
     const progress = await job.progress();
 
@@ -126,7 +118,6 @@ export class QueueService {
       failedReason: job.failedReason,
     };
   }
-
   /**
    * Get all active jobs for a user across all queues
    */
@@ -164,7 +155,6 @@ export class QueueService {
         });
       }
     }
-
     // Get active meal jobs
     const mealJobs = await this.mealGenerationQueue.getJobs(activeStates);
     // Get active InBody jobs
@@ -197,10 +187,8 @@ export class QueueService {
         });
       }
     }
-
     return result;
   }
-
   /**
    * Get progress message based on progress value
    */
@@ -212,7 +200,6 @@ export class QueueService {
     if (progressNum >= 10) return 'Analyzing your profile...';
     return 'Starting generation...';
   }
-
   /**
    * Map Bull job status to our JobStatus enum
    */

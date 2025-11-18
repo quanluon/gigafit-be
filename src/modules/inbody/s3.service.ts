@@ -17,7 +17,6 @@ export class S3Service {
     if (!this.bucket) {
       this.logger.warn('AWS S3 bucket not configured');
     }
-
     this.s3Client = new S3Client({
       region: awsConfig?.region || 'ap-southeast-1',
       credentials: awsConfig?.s3?.accessKeyId
@@ -28,7 +27,6 @@ export class S3Service {
         : undefined,
     });
   }
-
   async generatePresignedUploadUrl(
     userId: string,
     filename: string,
@@ -40,7 +38,6 @@ export class S3Service {
     if (!this.bucket) {
       throw new Error('S3 bucket not configured');
     }
-
     const sanitizedName = filename.replace(/\s+/g, '_');
     const key = `inbody/${userId}/${Date.now()}-${randomUUID()}-${sanitizedName}`;
 
@@ -55,7 +52,6 @@ export class S3Service {
 
     return { uploadUrl, s3Url, key };
   }
-
   getS3Url(key: string): string {
     if (!this.bucket) {
       throw new Error('S3 bucket not configured');
@@ -64,7 +60,6 @@ export class S3Service {
     const region = awsConfig?.region || 'ap-southeast-1';
     return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
   }
-
   extractKeyFromUrl(url: string): string {
     const match = url.match(/\/inbody\/.+$/);
     return match ? match[0] : '';

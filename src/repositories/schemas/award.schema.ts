@@ -1,6 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+export enum AwardType {
+  PR = 'pr',
+  STREAK = 'streak',
+  WEIGHT_MILESTONE = 'weight_milestone',
+}
 @Schema({ timestamps: true })
 export class Award extends Document {
   @Prop({ required: true })
@@ -19,7 +24,7 @@ export class Award extends Document {
   percentile!: number;
 
   @Prop({ type: String, required: true })
-  type!: string; // 'pr', 'streak', 'weight_milestone'
+  type!: AwardType;
 
   @Prop({ type: Date })
   createdAt!: Date;

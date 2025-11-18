@@ -7,7 +7,6 @@ export class SubscriptionService {
   private readonly logger = new Logger(SubscriptionService.name);
 
   constructor(private readonly userRepository: UserRepository) {}
-
   /**
    * Increment AI generation usage for a user by type
    */
@@ -17,12 +16,10 @@ export class SubscriptionService {
       this.logger.error(`User ${userId} not found when incrementing AI generation usage`);
       return;
     }
-
     const usageKey = this.getUsageKey(type);
     if (!usageKey) {
       return;
     }
-
     const newUsage = (user.subscription?.[usageKey]?.used || 0) + 1;
     await this.userRepository.update(userId, {
       subscription: {
@@ -36,7 +33,6 @@ export class SubscriptionService {
 
     this.logger.log(`Incremented ${type} generation usage for user ${userId}: ${newUsage}`);
   }
-
   /**
    * Get user's remaining AI generations by type
    */
@@ -53,7 +49,6 @@ export class SubscriptionService {
     if (!user) {
       throw new Error('User not found');
     }
-
     const plan = user.subscription?.plan || SubscriptionPlan.FREE;
     const limits = SUBSCRIPTION_LIMITS[plan];
 
@@ -75,7 +70,6 @@ export class SubscriptionService {
       plan,
     };
   }
-
   /**
    * Check if user has available AI generations for a specific type
    */
@@ -83,7 +77,6 @@ export class SubscriptionService {
     const { remaining, limit } = await this.getRemainingGenerations(userId, type);
     return limit === -1 || remaining > 0;
   }
-
   /**
    * Get all generation stats for a user
    */
@@ -99,7 +92,6 @@ export class SubscriptionService {
     if (!user) {
       throw new Error('User not found');
     }
-
     const workoutStats = await this.getRemainingGenerations(userId, GenerationType.WORKOUT);
     const mealStats = await this.getRemainingGenerations(userId, GenerationType.MEAL);
     const inbodyStats = await this.getRemainingGenerations(userId, GenerationType.INBODY);
@@ -130,7 +122,6 @@ export class SubscriptionService {
       },
     };
   }
-
   /**
    * Upgrade user's subscription plan
    */
@@ -141,7 +132,6 @@ export class SubscriptionService {
     if (!user) {
       throw new Error('User not found');
     }
-
     await this.userRepository.update(userId, {
       subscription: {
         ...user.subscription,
@@ -169,7 +159,6 @@ export class SubscriptionService {
       `Upgraded user ${userId} to ${plan} plan with ${limits.workout} workout & ${limits.meal} meal generations/month`,
     );
   }
-
   /**
    * Reset subscription period for a user (admin use)
    */
@@ -178,7 +167,6 @@ export class SubscriptionService {
     if (!user) {
       throw new Error('User not found');
     }
-
     await this.userRepository.update(userId, {
       subscription: {
         ...user.subscription,
@@ -204,7 +192,6 @@ export class SubscriptionService {
 
     this.logger.log(`Reset subscription period for user ${userId}`);
   }
-
   private getUsageKey(
     type: GenerationType,
   ): 'workoutGeneration' | 'mealGeneration' | 'inbodyScan' | 'bodyPhotoScan' | null {
@@ -221,7 +208,6 @@ export class SubscriptionService {
         return null;
     }
   }
-
   private getLimitKey(type: GenerationType): 'workout' | 'meal' | 'inbody' | 'bodyPhoto' {
     switch (type) {
       case GenerationType.WORKOUT:

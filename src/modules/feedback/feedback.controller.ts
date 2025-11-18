@@ -11,7 +11,6 @@ export class FeedbackController extends BaseController {
   constructor(private readonly feedbackService: FeedbackService) {
     super();
   }
-
   @Post()
   @ApiOperation({ summary: 'Submit beta feedback' })
   @ApiResponse({ status: 201, description: 'Feedback submitted successfully' })
@@ -32,4 +31,3 @@ export class FeedbackController extends BaseController {
     return this.success({ id: feedback.id }, 'Feedback submitted successfully');
   }
 }
-

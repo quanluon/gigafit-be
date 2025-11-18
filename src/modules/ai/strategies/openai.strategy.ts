@@ -42,14 +42,12 @@ export class OpenAIStrategy implements IAIStrategy {
     });
     this.logger.log(`✅ OpenAI Strategy initialized with model: ${modelName}`);
   }
-
   /**
    * Get provider name
    */
   getProviderName(): string {
     return AIProviderName.OPENAI;
   }
-
   /**
    * Generate workout plan using OpenAI with structured output
    */
@@ -67,7 +65,6 @@ export class OpenAIStrategy implements IAIStrategy {
 Generate workout plan:
 
 {userRequirements}
-
 - ${exerciseVolumeGuidance}
 - Proper muscle group distribution
 - videoUrl: empty string ""
@@ -99,7 +96,6 @@ Generate workout plan:
       return this.generateFallbackPlan(request);
     }
   }
-
   async generateInbodyAnalysis(
     metrics: InbodyMetricsSummary,
     rawText?: string,
@@ -151,7 +147,6 @@ Format: Each field should be concise but include specific numbers and estimates.
       };
     }
   }
-
   /**
    * Generate meal plan using OpenAI with structured output
    */
@@ -205,7 +200,6 @@ INPUT CONTEXT:
       throw error;
     }
   }
-
   /**
    * Build user requirements string
    */
@@ -243,10 +237,8 @@ INPUT CONTEXT:
     if (inbodyMetrics?.skeletalMuscleMass) {
       requirements += `, Muscle: ${inbodyMetrics.skeletalMuscleMass}kg`;
     }
-
     return requirements;
   }
-
   private getExerciseVolumeGuidance(experienceLevel: ExperienceLevel): string {
     switch (experienceLevel) {
       case ExperienceLevel.BEGINNER:
@@ -259,7 +251,6 @@ INPUT CONTEXT:
         return 'Include 6-8 exercises per day tailored to the user’s experience level.';
     }
   }
-
   /**
    * Convert Zod-validated type to GeneratedPlan interface
    */
@@ -278,7 +269,6 @@ INPUT CONTEXT:
       })),
     };
   }
-
   /**
    * Generate fallback plan if AI fails
    */
@@ -288,10 +278,8 @@ INPUT CONTEXT:
     for (const day of request.scheduleDays) {
       schedule.push(this.createDefaultWorkout(day, request.goal));
     }
-
     return { schedule };
   }
-
   /**
    * Analyze InBody image from URL using OpenAI Vision
    * Optionally compares with previous InBody result for accuracy
@@ -344,7 +332,6 @@ Use this previous data as a reference to:
 
         prompt += comparisonText;
       }
-
       const message = new HumanMessage({
         content: [
           { type: 'text', text: prompt },
@@ -379,7 +366,6 @@ Use this previous data as a reference to:
         if (!metrics.protein && prev.protein) metrics.protein = prev.protein;
         if (!metrics.minerals && prev.minerals) metrics.minerals = prev.minerals;
       }
-
       this.logger.log(
         `InBody image analysis completed${previousResult ? ' (with comparison)' : ''}. Extracted ${Object.keys(metrics).length} metrics.`,
       );
@@ -393,7 +379,6 @@ Use this previous data as a reference to:
       throw error;
     }
   }
-
   /**
    * Analyze body photo from URL using OpenAI Vision to estimate body composition
    */
@@ -442,7 +427,6 @@ Note: These are estimates based on visual analysis. Actual values may vary. Use 
       throw error;
     }
   }
-
   /**
    * Create default workout for a day using shared templates
    */

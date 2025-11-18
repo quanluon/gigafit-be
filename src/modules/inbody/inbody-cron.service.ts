@@ -13,7 +13,6 @@ export class InbodyCronService {
     private readonly inbodyResultRepository: InbodyResultRepository,
     private readonly inbodyService: InbodyService,
   ) {}
-
   /**
    * Run daily at 2 AM to retry processing stuck InBody results
    * Results that have been in PROCESSING status for more than 1 hour
@@ -38,7 +37,6 @@ export class InbodyCronService {
         this.logger.log('No stuck InBody results found');
         return;
       }
-
       this.logger.log(`Found ${stuckResults.length} stuck InBody result(s) to retry`);
 
       for (const result of stuckResults) {
@@ -90,7 +88,6 @@ export class InbodyCronService {
           });
         }
       }
-
       this.logger.log(`Completed retry of ${stuckResults.length} InBody result(s)`);
     } catch (error) {
       this.logger.error('Error in retryStuckInbodyResults cron job:', error);

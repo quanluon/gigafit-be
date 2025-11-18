@@ -11,7 +11,6 @@ export interface ExerciseTemplate {
   reps: string;
   videoUrl: string;
 }
-
 /**
  * Workout Day Template Interface
  */
@@ -19,7 +18,6 @@ export interface WorkoutDayTemplate {
   focus: Translatable;
   exercises: ExerciseTemplate[];
 }
-
 /**
  * Default Workout Templates
  * Fallback templates when AI generation fails

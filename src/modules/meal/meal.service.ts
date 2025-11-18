@@ -309,13 +309,11 @@ export class MealService {
     private readonly aiService: AIService,
     private readonly inbodyResultRepository: InbodyResultRepository,
   ) {}
-
   async generateMealPlan(userId: string, notes?: string): Promise<MealPlan> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
     // Validate required user data
     if (
       !user.weight ||
@@ -329,7 +327,6 @@ export class MealService {
         'Missing required user data: weight, height, age, gender, activityLevel, and goal are required',
       );
     }
-
     // Calculate TDEE and macros
     const tdeeData = this.tdeeCalculator.calculateComplete(
       user.weight,
@@ -406,7 +403,6 @@ export class MealService {
       }
       return updatedPlan;
     }
-
     // Create new plan
     return this.mealPlanRepository.create({
       userId,
@@ -422,7 +418,6 @@ export class MealService {
       schedule,
     });
   }
-
   async getCurrentPlan(userId: string): Promise<MealPlan> {
     const plan = await this.mealPlanRepository.findCurrentWeekPlan(userId);
     if (!plan) {
@@ -430,7 +425,6 @@ export class MealService {
     }
     return plan;
   }
-
   async calculateUserTDEE(userId: string): Promise<{
     bmr: number;
     tdee: number;
@@ -443,7 +437,6 @@ export class MealService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
     if (
       !user.weight ||
       !user.height ||
@@ -454,7 +447,6 @@ export class MealService {
     ) {
       throw new BadRequestException('Missing required user data for TDEE calculation');
     }
-
     return this.tdeeCalculator.calculateComplete(
       user.weight,
       user.height,
@@ -464,7 +456,6 @@ export class MealService {
       user.goal,
     );
   }
-
   private generateMealSchedule(
     days: DayOfWeek[],
     tdeeData: { targetCalories: number; protein: number; carbs: number; fat: number },
@@ -478,7 +469,6 @@ export class MealService {
       };
     });
   }
-
   private generateDailyMeals(targetCalories: number): MealPlan['schedule'][0]['meals'] {
     return (Object.entries(MEAL_CALORIE_SPLIT) as Array<[MealType, number]>).map(
       ([mealType, ratio]) => {
@@ -492,7 +482,6 @@ export class MealService {
       },
     );
   }
-
   private async generateMealScheduleWithAI(
     days: DayOfWeek[],
     tdeeData: { targetCalories: number; protein: number; carbs: number; fat: number },
@@ -512,7 +501,6 @@ export class MealService {
       return this.generateMealSchedule(days, tdeeData);
     }
   }
-
   private buildMealPlanPrompt(
     days: DayOfWeek[],
     tdeeData: { targetCalories: number; protein: number; carbs: number; fat: number },
@@ -535,11 +523,9 @@ Days: ${days.join(', ')}`;
     if (inbodySummary) {
       prompt += `\nInBody: ${inbodySummary.slice(0, 150)}`;
     }
-
     if (notes) {
       prompt += `\nNotes: ${notes.slice(0, 100)}`;
     }
-
     prompt += `
 
 4 meals/day (breakfast/lunch/dinner/snack), 2-3 items each
@@ -548,7 +534,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
 
     return prompt;
   }
-
   private buildMealItems(
     type: MealType,
     mealCalories: number,
@@ -557,7 +542,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
     if (!templates.length) {
       return [];
     }
-
     const allocations = templates.map((template) =>
       Math.round(mealCalories * template.calorieShare),
     );
@@ -589,7 +573,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
       };
     });
   }
-
   private buildMealComponents(
     template: MealTemplateItem,
     totalGrams: number,
@@ -622,7 +605,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
       };
     });
   }
-
   private calculateMealTotals(items: MealPlan['schedule'][0]['meals'][0]['items']): {
     calories: number;
     protein: number;
@@ -639,7 +621,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
       { calories: 0, protein: 0, carbs: 0, fat: 0 },
     );
   }
-
   private calculateDailyTotals(meals: MealPlan['schedule'][0]['meals']): {
     calories: number;
     protein: number;
@@ -656,7 +637,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
       { calories: 0, protein: 0, carbs: 0, fat: 0 },
     );
   }
-
   private normalizeAiSchedule(
     aiSchedule: MealPlan['schedule'],
     days: DayOfWeek[],
@@ -680,7 +660,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
       };
     });
   }
-
   private normalizeAiMeals(
     aiMeals: MealPlan['schedule'][0]['meals'] | undefined,
     targetCalories: number,
@@ -697,7 +676,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
       return this.normalizeAiMeal(mealType, aiMeal, targetCalories);
     });
   }
-
   private normalizeAiMeal(
     mealType: MealType,
     aiMeal: MealPlan['schedule'][0]['meals'][0] | undefined,
@@ -713,7 +691,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
         totalMacros: this.calculateMealTotals(fallbackItems),
       };
     }
-
     const normalizedItems = this.normalizeAiMealItems(mealType, aiMeal.items, desiredCalories);
     return {
       type: (aiMeal.type as MealType) || mealType,
@@ -721,7 +698,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
       totalMacros: this.calculateMealTotals(normalizedItems),
     };
   }
-
   private normalizeAiMealItems(
     mealType: MealType,
     aiItems: MealPlan['schedule'][0]['meals'][0]['items'],
@@ -745,7 +721,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
     if (currentCalories <= 0) {
       return this.buildMealItems(mealType, desiredCalories);
     }
-
     const scale = desiredCalories / currentCalories;
     const scaledItems = cleanedItems.map((item) => ({
       ...item,
@@ -762,10 +737,8 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
     if (calorieDiff !== 0 && scaledItems.length > 0) {
       scaledItems[scaledItems.length - 1].macros.calories += calorieDiff;
     }
-
     return scaledItems;
   }
-
   private ensureQuantityInGrams(quantity?: string): string {
     if (!quantity) {
       return '100g';
@@ -779,7 +752,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
     }
     return `${trimmed} (100g)`;
   }
-
   private toDayOfWeek(value: string): DayOfWeek | null {
     const normalized = value?.toLowerCase() as DayOfWeek | undefined;
     if (normalized && FULL_WEEK_DAYS.includes(normalized)) {
@@ -787,7 +759,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
     }
     return null;
   }
-
   private normalizeComponents(
     components: MealPlan['schedule'][0]['meals'][0]['items'][0]['components'] | undefined,
     fallbackQuantity?: string,
@@ -821,7 +792,6 @@ Vietnamese cuisine, variety, ±50 kcal daily target`;
       notes: component.notes || fallbackNote,
     }));
   }
-
   private getWeekNumber(date: Date): number {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
     const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;

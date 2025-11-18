@@ -1,14 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { UserRepository } from '../../repositories';
+import { DeviceTokenRepository, UserRepository } from '../../repositories';
 import { User } from '../../repositories';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SUBSCRIPTION_LIMITS, SubscriptionPlan } from 'src/common';
+import { UpsertDeviceTokenDto } from './dto/device-token.dto';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepository: UserRepository) {}
-
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly deviceTokenRepository: DeviceTokenRepository,
+  ) {}
   async create(createUserDto: CreateUserDto): Promise<User> {
     const isBeta = process.env.BETA === 'true';
     const subscription = {
@@ -21,7 +24,6 @@ export class UserService {
     };
     return this.userRepository.create({ ...createUserDto, subscription });
   }
-
   async findById(id: string): Promise<User> {
     const user = await this.userRepository.findById(id, { lean: true });
     if (!user) {
@@ -39,7 +41,6 @@ export class UserService {
       await this.userRepository.update(id, { subscription });
       user.subscription = subscription;
     }
-
     const plan = user.subscription?.plan || SubscriptionPlan.FREE;
 
     user.subscription.workoutGeneration.limit = SUBSCRIPTION_LIMITS[plan].workout;
@@ -55,18 +56,14 @@ export class UserService {
         limit: SUBSCRIPTION_LIMITS[plan].bodyPhoto,
       };
     }
-
     return user;
   }
-
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findByEmail(email);
   }
-
   async findByCognitoSub(cognitoSub: string): Promise<User | null> {
     return this.userRepository.findByCognitoSub(cognitoSub);
   }
-
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.userRepository.update(id, updateUserDto);
     if (!user) {
@@ -74,11 +71,21 @@ export class UserService {
     }
     return user;
   }
-
   async delete(id: string): Promise<boolean> {
     return this.userRepository.delete(id);
   }
-
+  async registerDeviceToken(userId: string, dto: UpsertDeviceTokenDto): Promise<void> {
+    await this.deviceTokenRepository.upsertToken(userId, dto.deviceId, dto.token, dto.platform);
+  }
+  async removeDeviceToken(userId: string, deviceId: string): Promise<void> {
+    await this.deviceTokenRepository.removeByDevice(userId, deviceId);
+  }
+  async getDeviceTokens(userId: string): Promise<string[]> {
+    const tokens = await this.deviceTokenRepository.findByUser(userId);
+    return tokens
+      .map((token) => token.token)
+      .filter((token): token is string => typeof token === 'string' && token.length > 0);
+  }
   async isProfileComplete(user: User): Promise<boolean> {
     return !!(
       user.goal &&

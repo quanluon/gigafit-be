@@ -9,7 +9,6 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
   constructor(@InjectModel(Exercise.name) exerciseModel: Model<Exercise>) {
     super(exerciseModel);
   }
-
   /**
    * Find exercise by keywords (fuzzy matching)
    */
@@ -25,7 +24,6 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
       .limit(5)
       .exec();
   }
-
   /**
    * Find best matching exercise
    */
@@ -45,7 +43,6 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
       await this.model.updateOne({ _id: exactMatch._id }, { $inc: { usageCount: 1 } }).exec();
       return exactMatch;
     }
-
     // Try partial match
     const partialMatch = await this.model
       .findOne({
@@ -60,10 +57,8 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
       await this.model.updateOne({ _id: partialMatch._id }, { $inc: { usageCount: 1 } }).exec();
       return partialMatch;
     }
-
     return null;
   }
-
   /**
    * Get exercises by muscle group
    */
@@ -76,7 +71,6 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
       .sort({ usageCount: -1 })
       .exec();
   }
-
   /**
    * Get exercises by source
    */
@@ -89,21 +83,18 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
       .sort({ usageCount: -1 })
       .exec();
   }
-
   /**
    * Get most popular exercises
    */
   async findMostPopular(limit: number = 20): Promise<Exercise[]> {
     return this.model.find({ isActive: true }).sort({ usageCount: -1 }).limit(limit).exec();
   }
-
   /**
    * Get recently crawled exercises
    */
   async findRecentlyCrawled(limit: number = 20): Promise<Exercise[]> {
     return this.model.find({ isActive: true }).sort({ lastCrawledAt: -1 }).limit(limit).exec();
   }
-
   /**
    * Update video metadata
    */
@@ -121,7 +112,6 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
       )
       .exec();
   }
-
   /**
    * Bulk insert exercises (for initial seeding)
    */
@@ -129,7 +119,6 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
     const result = await this.model.insertMany(exercises, { ordered: false });
     return result.length;
   }
-
   /**
    * Find multiple exercises by names in bulk (optimized for N+1 prevention)
    */
@@ -167,10 +156,8 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
         await this.model.updateOne({ _id: match._id }, { $inc: { usageCount: 1 } }).exec();
       }
     }
-
     return exerciseMap;
   }
-
   async findByIds(ids: string[]): Promise<Map<string, Exercise>> {
     if (ids.length === 0) {
       return new Map();
@@ -187,7 +174,6 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
     });
     return map;
   }
-
   async searchExercises(options: {
     search?: string;
     muscleGroup?: MuscleGroup;
@@ -199,12 +185,10 @@ export class ExerciseRepository extends BaseRepository<Exercise> {
     if (muscleGroup) {
       filter.muscleGroups = muscleGroup;
     }
-
     if (search) {
       const regex = new RegExp(search, 'i');
       filter.$or = [{ 'name.en': regex }, { 'name.vi': regex }, { keywords: regex }];
     }
-
     return this.model.find(filter).sort({ usageCount: -1 }).limit(limit).exec();
   }
 }

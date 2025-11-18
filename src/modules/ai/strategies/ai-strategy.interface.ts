@@ -16,7 +16,6 @@ export interface GeneratePlanRequest {
   inbodySummary?: string;
   inbodyMetrics?: InbodyMetricsSummary;
 }
-
 /**
  * Exercise interface
  */
@@ -27,7 +26,6 @@ export interface Exercise {
   reps: string;
   videoUrl: string;
 }
-
 /**
  * Workout day interface
  */
@@ -36,14 +34,12 @@ export interface WorkoutDay {
   focus: Translatable;
   exercises: Exercise[];
 }
-
 /**
  * Generated plan interface
  */
 export interface GeneratedPlan {
   schedule: WorkoutDay[];
 }
-
 /**
  * Abstract Strategy Interface for AI Providers
  * Defines the contract that all AI strategy implementations must follow

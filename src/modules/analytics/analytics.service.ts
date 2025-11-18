@@ -5,6 +5,7 @@ import {
   WeightLogRepository,
   Award,
   WeightLog,
+  AwardType,
 } from '../../repositories';
 import { SessionStatus } from '../../common/enums';
 
@@ -26,7 +27,6 @@ interface ExercisePR {
   maxWeight: number;
   date: string;
 }
-
 @Injectable()
 export class AnalyticsService {
   constructor(
@@ -34,7 +34,6 @@ export class AnalyticsService {
     private readonly awardRepository: AwardRepository,
     private readonly weightLogRepository: WeightLogRepository,
   ) {}
-
   async getWeightHistory(userId: string, days: number = 90): Promise<WeightHistory[]> {
     const endDate = new Date();
     const startDate = new Date();
@@ -47,7 +46,6 @@ export class AnalyticsService {
       weight: log.weight,
     }));
   }
-
   async logWeight(userId: string, weight: number, notes?: string): Promise<WeightLog> {
     return this.weightLogRepository.create({
       userId,
@@ -56,7 +54,6 @@ export class AnalyticsService {
       notes,
     });
   }
-
   async getProgressStats(userId: string): Promise<ProgressStats> {
     const model = this.trainingSessionRepository.getModel();
 
@@ -116,7 +113,6 @@ export class AnalyticsService {
       currentStreak,
     };
   }
-
   async getExercisePRs(userId: string): Promise<ExercisePR[]> {
     const sessions = await this.trainingSessionRepository.findByUserAndStatus(
       userId,
@@ -128,10 +124,12 @@ export class AnalyticsService {
     sessions.forEach((session) => {
       session.exercises.forEach((exerciseLog) => {
         const maxSetWeight = Math.max(...exerciseLog.sets.map((s) => s.weight));
-        const existing = prMap.get(exerciseLog.exerciseId);
+        // Use exercise name (prefer en, fallback to vi) as unique key
+        const exerciseName = exerciseLog.name?.en || exerciseLog.name?.vi || exerciseLog.exerciseId;
+        const existing = prMap.get(exerciseName);
 
         if (!existing || maxSetWeight > existing.weight) {
-          prMap.set(exerciseLog.exerciseId, {
+          prMap.set(exerciseName, {
             weight: maxSetWeight,
             date: session.createdAt,
           });
@@ -145,35 +143,45 @@ export class AnalyticsService {
       date: data.date.toISOString(),
     }));
   }
-
   async calculatePercentile(exerciseName: string, weight: number): Promise<number> {
-    const allSessions = await this.trainingSessionRepository.find({});
-    const weights: number[] = [];
+    const model = this.trainingSessionRepository.getModel();
 
-    allSessions.forEach((session) => {
-      session.exercises.forEach((exerciseLog) => {
-        if (exerciseLog.exerciseId === exerciseName) {
-          exerciseLog.sets.forEach((set) => {
-            weights.push(set.weight);
-          });
-        }
-      });
-    });
+    // Use aggregation to get all weights for this exercise
+    const result = await model.aggregate([
+      { $match: { status: SessionStatus.COMPLETED } },
+      { $unwind: '$exercises' },
+      {
+        $match: {
+          $or: [{ 'exercises.name.en': exerciseName }, { 'exercises.name.vi': exerciseName }],
+        },
+      },
+      { $unwind: '$exercises.sets' },
+      {
+        $project: {
+          weight: '$exercises.sets.weight',
+        },
+      },
+    ]);
 
-    if (weights.length === 0) return 100;
+    if (result.length === 0) return 100;
 
+    const weights = result.map((r) => r.weight);
     const lowerWeights = weights.filter((w) => w < weight).length;
     return Math.round((lowerWeights / weights.length) * 100);
   }
-
-  async checkIfNewPR(userId: string, exerciseId: string, weight: number): Promise<boolean> {
+  async checkIfNewPR(userId: string, exerciseName: string, weight: number): Promise<boolean> {
     const model = this.trainingSessionRepository.getModel();
 
     // Use aggregation to find the max weight for this exercise by this user
+    // Match by exercise name (check both en and vi fields)
     const result = await model.aggregate([
       { $match: { userId, status: SessionStatus.COMPLETED } },
       { $unwind: '$exercises' },
-      { $match: { 'exercises.exerciseId': exerciseId } },
+      {
+        $match: {
+          $or: [{ 'exercises.name.en': exerciseName }, { 'exercises.name.vi': exerciseName }],
+        },
+      },
       { $unwind: '$exercises.sets' },
       {
         $group: {
@@ -187,19 +195,16 @@ export class AnalyticsService {
       // First time doing this exercise - it's a PR!
       return weight > 0;
     }
-
     const currentMaxWeight = result[0].maxWeight || 0;
     return weight > currentMaxWeight;
   }
-
   async createAward(
     userId: string,
     exerciseName: string,
-    exerciseId: string,
     value: number,
-    type: string,
+    type: AwardType,
   ): Promise<Award> {
-    const percentile = await this.calculatePercentile(exerciseId, value);
+    const percentile = await this.calculatePercentile(exerciseName, value);
 
     return this.awardRepository.create({
       userId,
@@ -210,15 +215,12 @@ export class AnalyticsService {
       type,
     });
   }
-
   async getUserAwards(userId: string, limit: number = 10): Promise<Award[]> {
     return this.awardRepository.findByUser(userId, limit);
   }
-
   async getTopAwards(userId: string, limit: number = 5): Promise<Award[]> {
     return this.awardRepository.getTopAwards(userId, limit);
   }
-
   private async calculateStreak(userId: string): Promise<number> {
     const sessions = await this.trainingSessionRepository.findByUserAndStatus(
       userId,
@@ -249,7 +251,6 @@ export class AnalyticsService {
         break;
       }
     }
-
     return streak;
   }
 }

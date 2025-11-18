@@ -13,7 +13,6 @@ export class CrawlerController extends BaseController {
   constructor(private readonly crawlerService: CrawlerService) {
     super();
   }
-
   @Post('crawl/all')
   @ApiOperation({ summary: 'Crawl exercises from all sources (YouTube + TikTok) - Admin only' })
   async crawlAll(
@@ -23,7 +22,6 @@ export class CrawlerController extends BaseController {
     const result = await this.crawlerService.crawlAllSources(count);
     return this.success(result, `Crawled ${result.total} exercises successfully`);
   }
-
   @Post('crawl/muscle-group/:muscleGroup')
   @ApiOperation({
     summary: 'Crawl exercises for specific muscle group from YouTube + TikTok - Admin only',
@@ -36,7 +34,6 @@ export class CrawlerController extends BaseController {
     const result = await this.crawlerService.crawlMuscleGroup(muscleGroup, count);
     return this.success(result, `Crawled ${result.total} ${muscleGroup} exercises`);
   }
-
   @Get('statistics')
   @ApiOperation({ summary: 'Get exercise database statistics' })
   async getStatistics(): Promise<
@@ -50,7 +47,6 @@ export class CrawlerController extends BaseController {
     const stats = await this.crawlerService.getStatistics();
     return this.success(stats);
   }
-
   @Post('refresh/:exerciseId')
   @ApiOperation({ summary: 'Refresh exercise metadata (Admin only)' })
   async refreshMetadata(

@@ -22,7 +22,6 @@ interface TikTokVideo {
   create_time: number;
   cover_url: string;
 }
-
 @Injectable()
 export class TikTokCrawlerService {
   private readonly apiKey: string;
@@ -35,7 +34,6 @@ export class TikTokCrawlerService {
   ) {
     this.apiKey = this.configService.get<string>('crawler.tiktok.apiKey') || '';
   }
-
   /**
    * Crawl fitness exercises from TikTok
    */
@@ -54,16 +52,13 @@ export class TikTokCrawlerService {
           await this.saveExercise(video, muscleGroup);
           totalCrawled++;
         }
-
         this.logger.log(`Crawled ${videos.length} TikTok videos for #${hashtag}`);
       } catch (error) {
         this.logger.error(`Failed to crawl TikTok hashtag #${hashtag}:`, error);
       }
     }
-
     return totalCrawled;
   }
-
   /**
    * Search TikTok videos by hashtag
    * Note: This is a placeholder implementation
@@ -80,7 +75,6 @@ export class TikTokCrawlerService {
       this.logger.warn('TikTok API key not configured. Skipping TikTok crawling.');
       return [];
     }
-
     try {
       // This is a placeholder - actual endpoint depends on TikTok API version
       const response = await axios.get(`${this.baseUrl}/hashtag/videos`, {
@@ -100,7 +94,6 @@ export class TikTokCrawlerService {
       return [];
     }
   }
-
   /**
    * Save TikTok exercise to database
    */
@@ -113,7 +106,6 @@ export class TikTokCrawlerService {
       this.logger.debug(`Exercise already exists: ${video.title}`);
       return;
     }
-
     // Extract exercise name
     const { en, vi } = this.extractExerciseName(video.title);
 
@@ -143,7 +135,6 @@ export class TikTokCrawlerService {
 
     this.logger.log(`Saved TikTok exercise: ${en}`);
   }
-
   /**
    * Extract exercise name from title
    */
@@ -164,7 +155,6 @@ export class TikTokCrawlerService {
 
     return { en, vi };
   }
-
   /**
    * Generate keywords from title and description
    */
@@ -177,7 +167,6 @@ export class TikTokCrawlerService {
     if (hashtags) {
       keywords.push(...hashtags.map((h) => h.replace('#', '')));
     }
-
     // Extract words
     const stopWords = ['the', 'a', 'an', 'and', 'or', 'for', 'with', 'this', 'that'];
     const words = text
@@ -189,7 +178,6 @@ export class TikTokCrawlerService {
 
     return [...new Set(keywords)]; // Remove duplicates
   }
-
   /**
    * Get hashtags for each muscle group
    */
@@ -207,7 +195,6 @@ export class TikTokCrawlerService {
 
     return hashtags[muscleGroup] || [];
   }
-
   /**
    * Crawl all muscle groups from TikTok
    */
@@ -216,7 +203,6 @@ export class TikTokCrawlerService {
       this.logger.warn('TikTok API key not configured. Skipping TikTok crawling.');
       return 0;
     }
-
     const muscleGroups = Object.values(MuscleGroup);
     let totalCrawled = 0;
 
@@ -228,11 +214,9 @@ export class TikTokCrawlerService {
       // Delay to respect rate limits
       await this.delay(3000);
     }
-
     this.logger.log(`Total TikTok exercises crawled: ${totalCrawled}`);
     return totalCrawled;
   }
-
   /**
    * Delay helper
    */

@@ -33,7 +33,6 @@ export class AuthService {
     this.clientId = this.configService.get<string>('aws.cognito.clientId') || '';
     this.userPoolId = this.configService.get<string>('aws.cognito.userPoolId') || '';
   }
-
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const { email, password } = registerDto;
 
@@ -42,7 +41,6 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
-
     // Register user in Cognito
     const signUpCommand = new SignUpCommand({
       ClientId: this.clientId,
@@ -68,7 +66,6 @@ export class AuthService {
         });
         await this.cognitoClient.send(confirmCommand);
       }
-
       // Create user in database
       const user = await this.userService.create({
         email,
@@ -90,7 +87,6 @@ export class AuthService {
       throw new UnauthorizedException('Registration failed');
     }
   }
-
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = loginDto;
 
@@ -128,7 +124,6 @@ export class AuthService {
           cognitoSub,
         });
       }
-
       // Generate our own JWT token
       const jwtToken = this.generateAccessToken(cognitoSub, user.email);
 
@@ -144,7 +139,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
   }
-
   private generateAccessToken(cognitoSub: string, email: string): string {
     return this.jwtService.sign(
       {
@@ -153,11 +147,10 @@ export class AuthService {
         type: 'access',
       },
       {
-        expiresIn: '15m', // Short-lived access token
+        expiresIn: '7d', // Short-lived access token
       },
     );
   }
-
   private generateRefreshToken(cognitoSub: string, email: string): string {
     return this.jwtService.sign(
       {
@@ -166,11 +159,10 @@ export class AuthService {
         type: 'refresh',
       },
       {
-        expiresIn: '7d', // Long-lived refresh token
+        expiresIn: '30d', // Long-lived refresh token
       },
     );
   }
-
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       const payload = this.jwtService.verify(refreshToken);
@@ -178,12 +170,10 @@ export class AuthService {
       if (payload.type !== 'refresh') {
         throw new UnauthorizedException('Invalid token type');
       }
-
       const user = await this.userService.findByCognitoSub(payload.sub);
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
-
       const newAccessToken = this.generateAccessToken(payload.sub, payload.email);
       const newRefreshToken = this.generateRefreshToken(payload.sub, payload.email);
 
@@ -195,7 +185,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
-
   async validateUser(cognitoSub: string): Promise<User | null> {
     return this.userService.findByCognitoSub(cognitoSub);
   }

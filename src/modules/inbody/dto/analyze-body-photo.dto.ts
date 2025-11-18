@@ -15,4 +15,3 @@ export class AnalyzeBodyPhotoDto {
   @IsDateString()
   takenAt?: string;
 }
-

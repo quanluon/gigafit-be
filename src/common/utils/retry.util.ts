@@ -40,12 +40,10 @@ export async function retryWithBackoff<T>(
       if (config.shouldRetry && !config.shouldRetry(error)) {
         throw error;
       }
-
       // Don't retry if this was the last attempt
       if (attempt === config.maxAttempts) {
         break;
       }
-
       // Calculate delay with exponential backoff
       const exponentialDelay = config.baseDelay * Math.pow(config.backoffMultiplier, attempt - 1);
       const delay = Math.min(exponentialDelay, config.maxDelay);
@@ -59,15 +57,12 @@ export async function retryWithBackoff<T>(
           `Attempt ${attempt}/${config.maxAttempts} failed. Retrying in ${Math.round(finalDelay)}ms... Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }
-
       // Wait before retrying
       await sleep(finalDelay);
     }
   }
-
   throw lastError;
 }
-
 /**
  * Check if error is a rate limit error (429)
  */
@@ -91,7 +86,6 @@ export function isRateLimitError(error: unknown): boolean {
   }
   return false;
 }
-
 /**
  * Extract retry-after value from error (in milliseconds)
  */
@@ -107,7 +101,6 @@ export function getRetryAfter(error: unknown): number | null {
         const ms = typeof value === 'string' ? parseInt(value, 10) : value;
         if (!isNaN(ms)) return ms;
       }
-
       // retry-after (seconds)
       if (headers['retry-after']) {
         const value = headers['retry-after'];
@@ -118,14 +111,12 @@ export function getRetryAfter(error: unknown): number | null {
   }
   return null;
 }
-
 /**
  * Sleep for specified milliseconds
  */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
 /**
  * Rate limit aware retry - respects retry-after headers
  */
@@ -152,12 +143,10 @@ export async function retryWithRateLimit<T>(
       if (!isRateLimitError(error)) {
         throw error;
       }
-
       // Don't retry if this was the last attempt
       if (attempt === config.maxAttempts) {
         break;
       }
-
       // Try to get retry-after from error
       const retryAfter = getRetryAfter(error);
       let delay: number;
@@ -181,7 +170,6 @@ export async function retryWithRateLimit<T>(
           );
         }
       }
-
       // Add small jitter
       const jitter = Math.random() * delay * 0.1;
       const finalDelay = delay + jitter;
@@ -190,6 +178,5 @@ export async function retryWithRateLimit<T>(
       await sleep(finalDelay);
     }
   }
-
   throw lastError;
 }

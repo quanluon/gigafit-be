@@ -40,14 +40,12 @@ export class GeminiStrategy implements IAIStrategy {
     });
     this.logger.log(`✅ Gemini Strategy initialized with model: ${DEFAULT_AI_MODELS.GEMINI}`);
   }
-
   /**
    * Get provider name
    */
   getProviderName(): string {
     return AIProviderName.GEMINI;
   }
-
   /**
    * Generate workout plan using Gemini with structured output
    */
@@ -64,7 +62,6 @@ export class GeminiStrategy implements IAIStrategy {
 Generate workout plan:
 
 {userRequirements}
-
 - 4-6 exercises/day
 - Proper muscle distribution
 - videoUrl: empty string ""
@@ -96,7 +93,6 @@ Generate workout plan:
       return this.generateFallbackPlan(request);
     }
   }
-
   /**
    * Generate meal plan using Gemini with structured output
    */
@@ -141,7 +137,6 @@ Return a JSON object with a "schedule" property containing the meal plan.
       throw error;
     }
   }
-
   /**
    * Build user requirements string
    */
@@ -179,10 +174,8 @@ Return a JSON object with a "schedule" property containing the meal plan.
     if (inbodyMetrics?.skeletalMuscleMass) {
       requirements += `, Muscle: ${inbodyMetrics.skeletalMuscleMass}kg`;
     }
-
     return requirements;
   }
-
   /**
    * Convert Zod-validated type to GeneratedPlan interface
    */
@@ -201,7 +194,6 @@ Return a JSON object with a "schedule" property containing the meal plan.
       })),
     };
   }
-
   /**
    * Generate fallback plan if AI fails
    */
@@ -211,10 +203,8 @@ Return a JSON object with a "schedule" property containing the meal plan.
     for (const day of request.scheduleDays) {
       schedule.push(this.createDefaultWorkout(day, request.goal));
     }
-
     return { schedule };
   }
-
   /**
    * Create default workout for a day using shared templates
    */
@@ -227,7 +217,6 @@ Return a JSON object with a "schedule" property containing the meal plan.
       exercises: template.exercises,
     };
   }
-
   async generateInbodyAnalysis(
     metrics: InbodyMetricsSummary,
     rawText?: string,
@@ -275,7 +264,6 @@ Format: Each field should be concise but include specific numbers and estimates.
       };
     }
   }
-
   /**
    * Analyze InBody image from URL using Gemini Vision
    * Optionally compares with previous InBody result for accuracy
@@ -326,7 +314,6 @@ Use this previous data as a reference to:
 
         prompt += comparisonText;
       }
-
       // Gemini supports image URLs directly in the content
       const response = await llmWithStructuredOutput.invoke([
         {
@@ -362,7 +349,6 @@ Use this previous data as a reference to:
         if (!metrics.protein && prev.protein) metrics.protein = prev.protein;
         if (!metrics.minerals && prev.minerals) metrics.minerals = prev.minerals;
       }
-
       this.logger.log(
         `InBody image analysis completed${previousResult ? ' (with comparison)' : ''}. Extracted ${Object.keys(metrics).length} metrics.`,
       );
@@ -376,7 +362,6 @@ Use this previous data as a reference to:
       throw error;
     }
   }
-
   /**
    * Analyze body photo from URL using Gemini Vision to estimate body composition
    */

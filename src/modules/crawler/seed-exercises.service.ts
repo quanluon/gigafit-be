@@ -10,7 +10,6 @@ export class SeedExercisesService {
   private readonly logger = new Logger(SeedExercisesService.name);
 
   constructor(private readonly exerciseRepository: ExerciseRepository) {}
-
   async seedInitialExercises(): Promise<number> {
     this.logger.log('Seeding initial exercise database...');
 
@@ -122,7 +121,6 @@ export class SeedExercisesService {
       return 0;
     }
   }
-
   /**
    * Check if database needs seeding
    */
@@ -130,7 +128,6 @@ export class SeedExercisesService {
     const count = await this.exerciseRepository.count({});
     return count === 0;
   }
-
   /**
    * Seed if database is empty
    */

@@ -14,7 +14,6 @@ export class CrawlerService {
     private readonly tiktokCrawler: TikTokCrawlerService,
     private readonly exerciseRepository: ExerciseRepository,
   ) {}
-
   /**
    * Crawl exercises from all sources (YouTube + TikTok)
    */
@@ -42,7 +41,6 @@ export class CrawlerService {
       total,
     };
   }
-
   /**
    * Crawl specific muscle group from YouTube + TikTok
    */
@@ -73,7 +71,6 @@ export class CrawlerService {
       total,
     };
   }
-
   /**
    * Get exercise statistics
    */
@@ -107,7 +104,6 @@ export class CrawlerService {
       });
       byMuscleGroup[group] = count;
     }
-
     // Get most popular exercises
     const popularExercises = await this.exerciseRepository.findMostPopular(10);
     const mostPopular = popularExercises.map((ex) => ({
@@ -122,7 +118,6 @@ export class CrawlerService {
       mostPopular,
     };
   }
-
   /**
    * Scheduled job: Crawl exercises weekly
    * Runs every Sunday at 2 AM
@@ -138,7 +133,6 @@ export class CrawlerService {
       this.logger.error('Scheduled crawl failed:', error);
     }
   }
-
   /**
    * Refresh existing exercise metadata
    */
@@ -147,7 +141,6 @@ export class CrawlerService {
     if (!exercise) {
       throw new Error('Exercise not found');
     }
-
     if (exercise.source === VideoSource.YOUTUBE) {
       // Re-fetch YouTube video details
       const videoId = this.extractYouTubeVideoId(exercise.videoUrl);
@@ -155,14 +148,12 @@ export class CrawlerService {
         this.logger.log(`Refreshing metadata for YouTube video: ${videoId}`);
       }
     }
-
     await this.exerciseRepository.updateMetadata(exerciseId, {
       lastCrawledAt: new Date(),
     });
 
     this.logger.log(`Refreshed metadata for exercise: ${exercise.name.en}`);
   }
-
   /**
    * Extract YouTube video ID from URL
    */

@@ -10,4 +10,3 @@ import { TelegramService } from './telegram.service';
   providers: [FeedbackService, TelegramService],
 })
 export class FeedbackModule {}
-

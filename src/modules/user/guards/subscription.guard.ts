@@ -27,7 +27,6 @@ export class SubscriptionGuard implements CanActivate {
     private readonly userRepository: UserRepository,
     private readonly reflector: Reflector,
   ) {}
-
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const userId = request.user?.userId;
@@ -41,12 +40,10 @@ export class SubscriptionGuard implements CanActivate {
     if (!userId) {
       throw new ForbiddenException('User not authenticated');
     }
-
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new ForbiddenException('User not found');
     }
-
     // Check if subscription period has expired and reset if needed
     await this.checkAndResetSubscriptionPeriod(user);
 
@@ -78,12 +75,10 @@ export class SubscriptionGuard implements CanActivate {
       // If no type specified, allow (for backward compatibility)
       return true;
     }
-
     // -1 means unlimited
     if (limit === UNLIMITED_LIMIT) {
       return true;
     }
-
     // Check if user has exceeded their limit
     if (used >= limit) {
       this.logger.warn(
@@ -93,14 +88,12 @@ export class SubscriptionGuard implements CanActivate {
         `You have reached your monthly limit of ${limit} AI-generated ${generationType} plans. Upgrade your plan for more generations.`,
       );
     }
-
     this.logger.log(
       `User ${userId} ${generationType} AI generation check passed: ${used}/${limit} used`,
     );
 
     return true;
   }
-
   /**
    * Check if subscription period has expired and reset usage counters
    */

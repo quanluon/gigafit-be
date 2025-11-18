@@ -7,7 +7,6 @@ interface HealthResponse {
   uptime: number;
   environment: string;
 }
-
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
@@ -21,14 +20,12 @@ export class HealthController {
       environment: process.env.NODE_ENV || 'development',
     };
   }
-
   @Get('ready')
   @ApiOperation({ summary: 'Readiness check' })
   ready(): { ready: boolean } {
     // Add checks for database, redis, etc.
     return { ready: true };
   }
-
   @Get('live')
   @ApiOperation({ summary: 'Liveness check' })
   live(): { alive: boolean } {

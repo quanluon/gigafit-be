@@ -18,6 +18,8 @@ import { WeightLogRepository } from './weight-log.repository';
 import { WorkoutRepository } from './workout.repository';
 import { Feedback, FeedbackSchema } from './schemas/feedback.schema';
 import { FeedbackRepository } from './feedback.repository';
+import { DeviceToken, DeviceTokenSchema } from './schemas/device-token.schema';
+import { DeviceTokenRepository } from './device-token.repository';
 
 const schemas = [
   { name: User.name, schema: UserSchema },
@@ -29,6 +31,7 @@ const schemas = [
   { name: Exercise.name, schema: ExerciseSchema },
   { name: InbodyResult.name, schema: InbodyResultSchema },
   { name: Feedback.name, schema: FeedbackSchema },
+  { name: DeviceToken.name, schema: DeviceTokenSchema },
 ];
 
 const repositories = [
@@ -41,6 +44,7 @@ const repositories = [
   ExerciseRepository,
   InbodyResultRepository,
   FeedbackRepository,
+  DeviceTokenRepository,
 ];
 
 @Global()

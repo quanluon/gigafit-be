@@ -3,7 +3,6 @@ export interface SegmentMeasurementDto {
   value?: number;
   percentage?: number;
 }
-
 export interface InbodyMetricsSummary {
   weight?: number;
   skeletalMuscleMass?: number;
@@ -19,7 +18,6 @@ export interface InbodyMetricsSummary {
   segmentalLean?: SegmentMeasurementDto[];
   segmentalFat?: SegmentMeasurementDto[];
 }
-
 /**
  * Structured InBody analysis per language
  */
@@ -28,7 +26,6 @@ export interface InbodyAnalysisPerLanguage {
   recommendations: string[];
   training_nutrition_advice: string;
 }
-
 /**
  * Bilingual InBody analysis with structured fields
  */

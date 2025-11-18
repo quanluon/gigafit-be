@@ -10,4 +10,3 @@ export class FeedbackRepository extends BaseRepository<FeedbackDocument> {
     super(feedbackModel);
   }
 }
-

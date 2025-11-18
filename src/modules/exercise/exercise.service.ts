@@ -6,7 +6,6 @@ import { Exercise } from '../../repositories/schemas/exercise.schema';
 @Injectable()
 export class ExerciseService {
   constructor(private readonly exerciseRepository: ExerciseRepository) {}
-
   searchExercises(query: SearchExercisesDto): Promise<Exercise[]> {
     return this.exerciseRepository.searchExercises({
       search: query.search,

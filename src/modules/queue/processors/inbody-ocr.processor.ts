@@ -10,13 +10,11 @@ export interface InbodyOcrJobData {
   originalFilename: string;
   takenAt?: string;
 }
-
 @Processor(QueueName.INBODY_OCR)
 export class InbodyOcrProcessor {
   private readonly logger = new Logger(InbodyOcrProcessor.name);
 
   constructor(private readonly inbodyService: InbodyService) {}
-
   @Process(JobName.PROCESS_INBODY_REPORT)
   async handle(job: Job<InbodyOcrJobData>): Promise<{ userId: string }> {
     const { userId, s3Url, originalFilename, takenAt } = job.data;
@@ -37,6 +35,7 @@ export class InbodyOcrProcessor {
       scanResult.ocrText || JSON.stringify(scanResult.metrics || {}),
       scanResult.metrics,
       takenAt ? new Date(takenAt) : undefined,
+      job.id,
     );
 
     this.logger.log(`Finished InBody analysis job ${job.id} for user ${userId}`);
@@ -44,4 +43,3 @@ export class InbodyOcrProcessor {
     return { userId };
   }
 }
-

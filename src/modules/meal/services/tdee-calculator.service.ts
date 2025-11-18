@@ -9,7 +9,6 @@ interface TDEECalculation {
   carbs: number;
   fat: number;
 }
-
 @Injectable()
 export class TDEECalculatorService {
   /**
@@ -29,7 +28,6 @@ export class TDEECalculatorService {
       return baseBMR - 78;
     }
   }
-
   /**
    * Calculate TDEE based on activity level
    */
@@ -44,7 +42,6 @@ export class TDEECalculatorService {
 
     return Math.round(bmr * activityMultipliers[activityLevel]);
   }
-
   /**
    * Calculate target calories based on goal
    */
@@ -57,7 +54,6 @@ export class TDEECalculatorService {
 
     return Math.round(tdee + adjustments[goal]);
   }
-
   /**
    * Calculate macronutrients based on goal
    */
@@ -75,7 +71,6 @@ export class TDEECalculatorService {
     } else {
       proteinGrams = weight * 1.6;
     }
-
     // Fat: 25-30% of total calories
     const fatCalories = targetCalories * 0.25;
     const fatGrams = fatCalories / 9; // 9 calories per gram of fat
@@ -91,7 +86,6 @@ export class TDEECalculatorService {
       fat: Math.round(fatGrams),
     };
   }
-
   /**
    * Complete TDEE and macros calculation
    */

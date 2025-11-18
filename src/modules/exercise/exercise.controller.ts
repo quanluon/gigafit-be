@@ -15,7 +15,6 @@ export class ExerciseController extends BaseController {
   constructor(private readonly exerciseService: ExerciseService) {
     super();
   }
-
   @Get()
   @ApiOperation({ summary: 'Search exercises catalog' })
   async searchExercises(@Query() query: SearchExercisesDto): Promise<ApiResponseType<Exercise[]>> {

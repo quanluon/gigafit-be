@@ -14,14 +14,12 @@ export class TrainingService {
     private readonly trainingSessionRepository: TrainingSessionRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
-
   async startSession(userId: string, startSessionDto: StartSessionDto): Promise<TrainingSession> {
     // Check if there's already an active session
     const activeSession = await this.trainingSessionRepository.findActiveSession(userId);
     if (activeSession) {
       throw new BadRequestException('You already have an active training session');
     }
-
     // Create new session
     return this.trainingSessionRepository.create({
       userId,
@@ -32,7 +30,6 @@ export class TrainingService {
       status: SessionStatus.IN_PROGRESS,
     });
   }
-
   async getActiveSession(userId: string): Promise<TrainingSession | null> {
     const session = await this.trainingSessionRepository.findActiveSession(userId);
 
@@ -56,10 +53,8 @@ export class TrainingService {
         return null; // Return null since the old session is now completed
       }
     }
-
     return session;
   }
-
   private isSessionFromPastDay(sessionDay: DayOfWeek): boolean {
     const today = new Date();
     const currentDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1; // Monday = 0, Sunday = 6
@@ -79,7 +74,6 @@ export class TrainingService {
     // If session day is before current day in the week
     return sessionDayIndex < currentDayIndex;
   }
-
   async getSessionById(userId: string, sessionId: string): Promise<TrainingSession> {
     const session = await this.trainingSessionRepository.findById(sessionId);
     if (!session || session.userId !== userId) {
@@ -87,7 +81,6 @@ export class TrainingService {
     }
     return session;
   }
-
   async updateSession(
     userId: string,
     sessionId: string,
@@ -98,7 +91,6 @@ export class TrainingService {
     if (session.status !== SessionStatus.IN_PROGRESS) {
       throw new BadRequestException('Cannot update a completed or cancelled session');
     }
-
     const updatedSession = await this.trainingSessionRepository.update(sessionId, {
       exercises: updateSessionDto.exercises,
     });
@@ -106,7 +98,6 @@ export class TrainingService {
     if (!updatedSession) {
       throw new NotFoundException('Failed to update session');
     }
-
     return updatedSession;
   }
   async logExercise(
@@ -119,7 +110,6 @@ export class TrainingService {
     if (session.status !== SessionStatus.IN_PROGRESS) {
       throw new BadRequestException('Cannot log exercises for a completed or cancelled session');
     }
-
     const updatedSession = await this.trainingSessionRepository.update(sessionId, {
       exercises: logExerciseDto.exercises,
     });
@@ -127,7 +117,6 @@ export class TrainingService {
     if (!updatedSession) {
       throw new NotFoundException('Failed to log exercise');
     }
-
     // Emit event for background award processing
     this.eventEmitter.emit(
       EventName.EXERCISE_LOGGED,
@@ -136,14 +125,12 @@ export class TrainingService {
 
     return updatedSession;
   }
-
   async completeSession(userId: string, sessionId: string): Promise<TrainingSession> {
     const session = await this.getSessionById(userId, sessionId);
 
     if (session.status !== SessionStatus.IN_PROGRESS) {
       throw new BadRequestException('Session is not in progress');
     }
-
     const updatedSession = await this.trainingSessionRepository.update(sessionId, {
       endTime: new Date(),
       status: SessionStatus.COMPLETED,
@@ -152,17 +139,14 @@ export class TrainingService {
     if (!updatedSession) {
       throw new NotFoundException('Failed to complete session');
     }
-
     return updatedSession;
   }
-
   async cancelSession(userId: string, sessionId: string): Promise<TrainingSession> {
     const session = await this.getSessionById(userId, sessionId);
 
     if (session.status !== SessionStatus.IN_PROGRESS) {
       throw new BadRequestException('Session is not in progress');
     }
-
     const updatedSession = await this.trainingSessionRepository.update(sessionId, {
       endTime: new Date(),
       status: SessionStatus.CANCELLED,
@@ -171,22 +155,17 @@ export class TrainingService {
     if (!updatedSession) {
       throw new NotFoundException('Failed to cancel session');
     }
-
     return updatedSession;
   }
-
   async getRecentSessions(userId: string, limit: number = 10): Promise<TrainingSession[]> {
     return this.trainingSessionRepository.findRecentSessions(userId, limit);
   }
-
   async getUserSessions(userId: string): Promise<TrainingSession[]> {
     return this.trainingSessionRepository.findByUser(userId);
   }
-
   async getSessionsByStatus(userId: string, status: SessionStatus): Promise<TrainingSession[]> {
     return this.trainingSessionRepository.findByUserAndStatus(userId, status);
   }
-
   async getSessionsByMonth(
     userId: string,
     year: number,

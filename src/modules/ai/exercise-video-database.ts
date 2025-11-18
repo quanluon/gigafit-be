@@ -236,7 +236,6 @@ export class ExerciseVideoDatabase {
         }
       }
     }
-
     // Try partial match
     for (const video of this.videos) {
       for (const keyword of video.keywords) {
@@ -245,7 +244,6 @@ export class ExerciseVideoDatabase {
         }
       }
     }
-
     // Try word-by-word match
     const words = searchTerm.split(/\s+/);
     for (const video of this.videos) {
@@ -260,11 +258,9 @@ export class ExerciseVideoDatabase {
         }
       }
     }
-
     // Default: Return a general workout technique video
     return 'https://www.youtube.com/watch?v=IODxDxX7oi4'; // Proper form fundamentals
   }
-
   /**
    * Get all available exercises (for reference)
    */

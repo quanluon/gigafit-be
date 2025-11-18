@@ -2,7 +2,6 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { WorkoutService } from '../../workout/workout.service';
-import { NotificationGateway } from '../../notification/notification.gateway';
 import { SubscriptionService } from '../../user/services/subscription.service';
 import {
   Goal,
@@ -11,10 +10,10 @@ import {
   QueueName,
   JobName,
   JobProgress,
-  WebSocketEvent,
   GenerationType,
 } from '../../../common/enums';
 import { WorkoutPlan } from '../../../repositories';
+import { NotificationFacade } from '../../notification/notification.facade';
 
 export interface WorkoutGenerationJobData {
   userId: string;
@@ -33,17 +32,15 @@ interface WorkoutGenerationResult {
   planId: string;
   userId: string;
 }
-
 @Processor(QueueName.WORKOUT_GENERATION)
 export class WorkoutGenerationProcessor {
   private readonly logger = new Logger(WorkoutGenerationProcessor.name);
 
   constructor(
     private readonly workoutService: WorkoutService,
-    private readonly notificationGateway: NotificationGateway,
     private readonly subscriptionService: SubscriptionService,
+    private readonly notificationFacade: NotificationFacade,
   ) {}
-
   @Process(JobName.GENERATE_WORKOUT_PLAN)
   async handleGeneratePlan(job: Job<WorkoutGenerationJobData>): Promise<WorkoutGenerationResult> {
     const {
@@ -61,13 +58,7 @@ export class WorkoutGenerationProcessor {
     this.logger.log(`Processing workout generation for user ${userId}, job ${job.id}`);
 
     try {
-      // Notify start
       await job.progress(JobProgress.STARTED);
-      this.notificationGateway.sendToUser(userId, WebSocketEvent.WORKOUT_GENERATION_STARTED, {
-        jobId: job.id || 0,
-        progress: JobProgress.STARTED,
-        message: 'Starting workout plan generation...',
-      });
 
       // Increment usage counter if AI was used
       await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.WORKOUT);
@@ -85,23 +76,18 @@ export class WorkoutGenerationProcessor {
         notes,
       });
 
-      // Update progress: Finalizing
       await job.progress(JobProgress.FINALIZING);
-      this.notificationGateway.sendToUser(userId, WebSocketEvent.WORKOUT_GENERATION_PROGRESS, {
-        jobId: job.id || 0,
-        progress: JobProgress.FINALIZING,
-        message: 'Finalizing workout plan...',
-      });
 
       // Extract plan ID safely
       const planId = this.extractPlanId(plan);
 
-      // Notify completion
+      // Notify completion via FCM
       await job.progress(JobProgress.COMPLETED);
-      this.notificationGateway.sendToUser(userId, WebSocketEvent.WORKOUT_GENERATION_COMPLETE, {
+      await this.notificationFacade.notifyGenerationComplete({
+        userId,
         jobId: job.id || 0,
+        generationType: GenerationType.WORKOUT,
         planId,
-        message: 'Your workout plan is ready!',
       });
 
       this.logger.log(`Workout generation complete for user ${userId}, job ${job.id}`);
@@ -115,16 +101,16 @@ export class WorkoutGenerationProcessor {
         error instanceof Error ? error.message : 'Failed to generate workout plan';
       this.logger.error(`Workout generation failed for user ${userId}:`, error);
 
-      // Notify error
-      this.notificationGateway.sendToUser(userId, WebSocketEvent.WORKOUT_GENERATION_ERROR, {
+      await this.notificationFacade.notifyGenerationError({
+        userId,
         jobId: job.id || 0,
+        generationType: GenerationType.WORKOUT,
         error: errorMessage,
       });
 
       throw error; // Bull will mark job as failed
     }
   }
-
   /**
    * Safely extract plan ID from WorkoutPlan document
    */

@@ -18,7 +18,6 @@ export enum MuscleGroup {
   CARDIO = 'cardio',
   FULL_BODY = 'full_body',
 }
-
 @Schema({ _id: false })
 export class VideoMetadata {
   @Prop({ required: true })
@@ -42,7 +41,6 @@ export class VideoMetadata {
   @Prop()
   publishedAt?: Date;
 }
-
 @Schema({ timestamps: true })
 export class Exercise extends Document {
   @Prop({ type: Object, required: true })

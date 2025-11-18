@@ -27,7 +27,6 @@ interface JobResponse {
   jobId: string;
   message: string;
 }
-
 @ApiTags('meal')
 @Controller('meal')
 @UseGuards(JwtAuthGuard)
@@ -39,7 +38,6 @@ export class MealController extends BaseController {
   ) {
     super();
   }
-
   @Post('plan/generate')
   @UseGuards(SubscriptionGuard)
   @GenerationTypeDecorator(GenerationType.MEAL)
@@ -63,21 +61,18 @@ export class MealController extends BaseController {
       'Job created successfully',
     );
   }
-
   @Get('plan/generate/status/:jobId')
   @ApiOperation({ summary: 'Get meal plan generation job status' })
   async getGenerationStatus(@Param('jobId') jobId: string): Promise<ApiResponseType<unknown>> {
     const status = await this.queueService.getMealJobStatus(jobId);
     return this.success(status);
   }
-
   @Get('plan')
   @ApiOperation({ summary: 'Get current week meal plan' })
   async getCurrentPlan(@Req() req: RequestWithUser): Promise<ApiResponseType<MealPlan>> {
     const plan = await this.mealService.getCurrentPlan(req.user.userId);
     return this.success(plan);
   }
-
   @Get('tdee')
   @ApiOperation({ summary: 'Calculate user TDEE and macros' })
   async calculateTDEE(@Req() req: RequestWithUser): Promise<ApiResponseType<TDEEResponse>> {

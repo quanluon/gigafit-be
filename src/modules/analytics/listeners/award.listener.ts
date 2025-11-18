@@ -3,13 +3,13 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { ExerciseLoggedEvent } from '../events/exercise-logged.event';
 import { AnalyticsService } from '../analytics.service';
 import { EventName } from '../../../common/enums';
+import { AwardType } from 'src/repositories';
 
 @Injectable()
 export class AwardListener {
   private readonly logger = new Logger(AwardListener.name);
 
   constructor(private readonly analyticsService: AnalyticsService) {}
-
   @OnEvent(EventName.EXERCISE_LOGGED)
   async handleExerciseLogged(event: ExerciseLoggedEvent): Promise<void> {
     try {
@@ -20,10 +20,12 @@ export class AwardListener {
         const maxWeight = Math.max(...exercise.sets.map((s) => s.weight));
 
         if (maxWeight > 0) {
+          // Use exercise name (prefer en, fallback to vi) for PR check
+          const exerciseName = exercise.name?.en || exercise.name?.vi || exercise.exerciseId;
           // Check if this is a new PR
           const isNewPR = await this.analyticsService.checkIfNewPR(
             event.userId,
-            exercise.exerciseId,
+            exerciseName,
             maxWeight,
           );
 
@@ -32,9 +34,8 @@ export class AwardListener {
             await this.analyticsService.createAward(
               event.userId,
               exercise.name.en,
-              exercise.exerciseId,
               maxWeight,
-              'PR',
+              AwardType.PR,
             );
             this.logger.log(
               `Created PR award for user ${event.userId}, exercise ${exercise.name.en}, weight ${maxWeight}kg`,

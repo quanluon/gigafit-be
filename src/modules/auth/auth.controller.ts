@@ -14,21 +14,18 @@ export class AuthController extends BaseController {
   constructor(private readonly authService: AuthService) {
     super();
   }
-
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() registerDto: RegisterDto): Promise<ApiResponseType<AuthResponseDto>> {
     const result = await this.authService.register(registerDto);
     return this.success(result, 'User registered successfully');
   }
-
   @Post('login')
   @ApiOperation({ summary: 'Login user' })
   async login(@Body() loginDto: LoginDto): Promise<ApiResponseType<AuthResponseDto>> {
     const result = await this.authService.login(loginDto);
     return this.success(result, 'User logged in successfully');
   }
-
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   async refresh(

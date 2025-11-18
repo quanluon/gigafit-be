@@ -8,7 +8,6 @@ export abstract class BaseController {
       message,
     };
   }
-
   protected error(error: string, message?: string): ApiResponse<never> {
     return {
       success: false,

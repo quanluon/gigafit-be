@@ -19,7 +19,6 @@ class TranslatableDto {
   @IsString()
   vi!: string;
 }
-
 export class ExerciseInputDto {
   @IsOptional()
   @IsString()
@@ -45,7 +44,6 @@ export class ExerciseInputDto {
   @IsString()
   videoUrl!: string;
 }
-
 export class WorkoutDayInputDto {
   @IsEnum(DayOfWeek)
   dayOfWeek!: DayOfWeek;
@@ -60,7 +58,6 @@ export class WorkoutDayInputDto {
   @Type(() => ExerciseInputDto)
   exercises!: ExerciseInputDto[];
 }
-
 export class CreateCustomPlanDto {
   @IsOptional()
   @IsString()
@@ -72,7 +69,6 @@ export class CreateCustomPlanDto {
   @Type(() => WorkoutDayInputDto)
   schedule!: WorkoutDayInputDto[];
 }
-
 export class UpdateCustomPlanDto {
   @IsOptional()
   @IsString()

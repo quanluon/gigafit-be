@@ -31,7 +31,6 @@ interface YouTubeVideoDetails {
     likeCount: string;
   };
 }
-
 @Injectable()
 export class YouTubeCrawlerService {
   private readonly apiKey: string;
@@ -44,7 +43,6 @@ export class YouTubeCrawlerService {
   ) {
     this.apiKey = this.configService.get<string>('crawler.youtube.apiKey') || '';
   }
-
   /**
    * Crawl exercises from YouTube by muscle group
    */
@@ -71,16 +69,13 @@ export class YouTubeCrawlerService {
           await this.saveExercise(result, details, muscleGroup);
           totalCrawled++;
         }
-
         this.logger.log(`Crawled ${results.length} videos for query: ${query}`);
       } catch (error) {
         this.logger.error(`Failed to crawl for query "${query}":`, error);
       }
     }
-
     return totalCrawled;
   }
-
   /**
    * Search YouTube videos
    */
@@ -105,7 +100,6 @@ export class YouTubeCrawlerService {
       return [];
     }
   }
-
   /**
    * Get detailed video information
    */
@@ -127,7 +121,6 @@ export class YouTubeCrawlerService {
       return [];
     }
   }
-
   /**
    * Save exercise to database
    */
@@ -144,7 +137,6 @@ export class YouTubeCrawlerService {
       this.logger.debug(`Exercise already exists: ${searchResult.snippet.title}`);
       return;
     }
-
     // Extract exercise name from title
     const { en, vi } = this.extractExerciseName(searchResult.snippet.title);
 
@@ -177,7 +169,6 @@ export class YouTubeCrawlerService {
 
     this.logger.log(`Saved exercise: ${en}`);
   }
-
   /**
    * Extract exercise name from video title
    */
@@ -201,7 +192,6 @@ export class YouTubeCrawlerService {
 
     return { en, vi };
   }
-
   /**
    * Generate search keywords from title
    */
@@ -239,10 +229,8 @@ export class YouTubeCrawlerService {
     if (cleanTitle.includes('deadlift')) {
       keywords.push('deadlift', 'deadlifts', 'dl');
     }
-
     return [...new Set(keywords)]; // Remove duplicates
   }
-
   /**
    * Parse ISO 8601 duration to seconds
    */
@@ -256,7 +244,6 @@ export class YouTubeCrawlerService {
 
     return hours * 3600 + minutes * 60 + seconds;
   }
-
   /**
    * Get search queries for each muscle group
    */
@@ -305,7 +292,6 @@ export class YouTubeCrawlerService {
 
     return queries[muscleGroup] || [];
   }
-
   /**
    * Crawl all muscle groups
    */
@@ -321,11 +307,9 @@ export class YouTubeCrawlerService {
       // Add delay to respect API rate limits
       await this.delay(2000);
     }
-
     this.logger.log(`Total exercises crawled: ${totalCrawled}`);
     return totalCrawled;
   }
-
   /**
    * Delay helper for rate limiting
    */

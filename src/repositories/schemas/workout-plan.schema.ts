@@ -33,7 +33,6 @@ export class WorkoutDay {
   @Prop({ type: [Exercise], required: true })
   exercises!: Exercise[];
 }
-
 @Schema({ timestamps: true })
 export class WorkoutPlan extends Document {
   @Prop({ required: true })

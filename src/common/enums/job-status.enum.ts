@@ -6,7 +6,6 @@ export enum JobStatus {
   DELAYED = 'delayed',
   PAUSED = 'paused',
 }
-
 export enum JobProgress {
   STARTED = 10,
   GENERATING = 50,

@@ -1,11 +1,11 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InbodyResultRepository } from '../../repositories/inbody-result.repository';
 import { InbodyResult, InbodySourceType } from '../../repositories/schemas/inbody-result.schema';
-import { GenerationType, InbodyStatus, WebSocketEvent, WebSocketRoom } from '../../common/enums';
+import { GenerationType, InbodyStatus } from '../../common/enums';
 import { SubscriptionService } from '../user/services/subscription.service';
 import { InbodyMetricsSummary, InbodyAnalysis } from '../../common/interfaces';
 import { AIService } from '../ai/ai.service';
-import { NotificationGateway } from '../notification/notification.gateway';
+import { NotificationFacade } from '../notification/notification.facade';
 
 @Injectable()
 export class InbodyService {
@@ -15,9 +15,8 @@ export class InbodyService {
     private readonly inbodyResultRepository: InbodyResultRepository,
     private readonly subscriptionService: SubscriptionService,
     private readonly aiService: AIService,
-    private readonly notificationGateway: NotificationGateway,
+    private readonly notificationFacade: NotificationFacade,
   ) {}
-
   async listUserResults(userId: string, limit = 20, offset = 0): Promise<InbodyResult[]> {
     return this.inbodyResultRepository.baseModel
       .find({ userId })
@@ -27,7 +26,6 @@ export class InbodyService {
       .lean<InbodyResult[]>()
       .exec();
   }
-
   async getResult(userId: string, resultId: string): Promise<InbodyResult> {
     const result = await this.inbodyResultRepository.findById(resultId);
     if (!result || result.userId !== userId) {
@@ -35,7 +33,6 @@ export class InbodyService {
     }
     return result;
   }
-
   async scanInbodyImage(
     userId: string,
     s3Url: string,
@@ -52,36 +49,10 @@ export class InbodyService {
     if (!hasQuota) {
       throw new BadRequestException('Subscription limit reached for InBody scans');
     }
-
     if (!s3Url) {
       throw new BadRequestException('S3 URL is required');
     }
-
     try {
-      // Emit started event
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.INBODY_SCAN_STARTED, {
-          progress: 0,
-          message: 'Đang chuẩn bị phân tích...',
-        });
-
-      // Emit progress: analyzing image
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.INBODY_SCAN_PROGRESS, {
-          progress: 20,
-          message: 'Đang suy nghĩ về báo cáo InBody của bạn...',
-        });
-
-      // Emit progress: processing
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.INBODY_SCAN_PROGRESS, {
-          progress: 40,
-          message: 'Đang đọc và phân tích hình ảnh...',
-        });
-
       // Find nearest previous InBody result with same source type for comparison
       const previousResult = await this.inbodyResultRepository.baseModel
         .findOne({
@@ -95,51 +66,19 @@ export class InbodyService {
         .exec();
 
       // Use AI vision to analyze the image with previous result for comparison
-      const result = await this.aiService.analyzeInbodyImage(s3Url, previousResult);
+      const scanResult = await this.aiService.analyzeInbodyImage(s3Url, previousResult);
 
-      // Emit progress: extracting metrics
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.INBODY_SCAN_PROGRESS, {
-          progress: 70,
-          message: 'Đang trích xuất các chỉ số cơ thể...',
-        });
-
-      // Emit progress: finalizing
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.INBODY_SCAN_PROGRESS, {
-          progress: 90,
-          message: 'Đang hoàn thiện phân tích...',
-        });
-
-      // Increment usage after successful scan
+      // Increment usage after successful scan (maintain historical behavior)
       await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.INBODY);
 
-      // Emit completion
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.INBODY_SCAN_COMPLETE, {
-          progress: 100,
-          message: 'Hoàn thành phân tích InBody thành công!',
-        });
-
-      return result;
+      return scanResult;
     } catch (error) {
       this.logger.error('Failed to scan InBody image', error);
-      // Emit error event
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.INBODY_SCAN_ERROR, {
-          message: error instanceof Error ? error.message : 'Failed to scan InBody image',
-        });
-
       throw new BadRequestException(
         error instanceof Error ? error.message : 'Failed to scan InBody image',
       );
     }
   }
-
   async processInbodyScan(
     userId: string,
     s3Url: string,
@@ -147,6 +86,7 @@ export class InbodyService {
     ocrText: string,
     metrics?: InbodyMetricsSummary,
     takenAt?: Date,
+    jobId?: string | number,
   ): Promise<InbodyResult> {
     const hasQuota = await this.subscriptionService.hasAvailableGenerations(
       userId,
@@ -155,11 +95,9 @@ export class InbodyService {
     if (!hasQuota) {
       throw new BadRequestException('Subscription limit reached for InBody scans');
     }
-
     if (!ocrText || !ocrText.trim()) {
       throw new BadRequestException('OCR text is required');
     }
-
     const result = await this.inbodyResultRepository.create({
       userId,
       status: InbodyStatus.PROCESSING,
@@ -172,17 +110,17 @@ export class InbodyService {
     });
 
     // Process analysis asynchronously
-    this.processAiAnalysis(result._id!.toString(), ocrText, metrics || {}).catch((error) => {
+    this.processAiAnalysis(result._id!.toString(), ocrText, metrics || {}, jobId).catch((error) => {
       this.logger.error('Failed to process analysis', error);
     });
 
     return result;
   }
-
   async processAiAnalysis(
     resultId: string,
     ocrText: string,
     metrics: InbodyMetricsSummary,
+    jobId?: string | number,
   ): Promise<void> {
     try {
       const aiAnalysis = await this.generateAiAnalysis(metrics, ocrText);
@@ -199,6 +137,12 @@ export class InbodyService {
           result.userId,
           GenerationType.INBODY,
         );
+        await this.notificationFacade.notifyGenerationComplete({
+          userId: result.userId,
+          jobId: jobId || resultId,
+          generationType: GenerationType.INBODY,
+          resultId,
+        });
       }
     } catch (error) {
       this.logger.error('Analysis failed', error);
@@ -206,28 +150,19 @@ export class InbodyService {
         status: InbodyStatus.FAILED,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
+
+      const result = await this.inbodyResultRepository.findById(resultId);
+      if (result) {
+        await this.notificationFacade.notifyGenerationError({
+          userId: result.userId,
+          jobId: jobId || resultId,
+          generationType: GenerationType.INBODY,
+          resultId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
     }
   }
-
-  parseInbodyMetrics(ocrText: string): InbodyMetricsSummary {
-    const extractNumber = (regex: RegExp): number | undefined => {
-      const match = ocrText.match(regex);
-      if (!match) return undefined;
-      const value = parseFloat(match[1].replace(',', '.'));
-      return Number.isNaN(value) ? undefined : value;
-    };
-
-    return {
-      weight: extractNumber(/Trọng\s* lượng[^\d]*(\d{2,3}(?:[.,]\d)?)/i),
-      skeletalMuscleMass: extractNumber(/Khối\s*lượng\s*cơ\s*xương[^\d]*(\d{1,3}(?:[.,]\d)?)/i),
-      bodyFatMass: extractNumber(/Khối\s*lượng\s*mỡ\s*cơ\s*thể[^\d]*(\d{1,3}(?:[.,]\d)?)/i),
-      bodyFatPercent: extractNumber(/PBF[^\d]*(\d{1,2}(?:[.,]\d)?)/i),
-      bmi: extractNumber(/BMI[^\d]*(\d{1,2}(?:[.,]\d)?)/i),
-      visceralFatLevel: extractNumber(/Mức\s*mỡ\s*nội\s*tạng[^\d]*(\d{1,2}(?:[.,]\d)?)/i),
-      basalMetabolicRate: extractNumber(/TDEE[^\d]*(\d{3,4})/i),
-    };
-  }
-
   async analyzeBodyPhoto(
     userId: string,
     s3Url: string,
@@ -241,11 +176,9 @@ export class InbodyService {
     if (!hasQuota) {
       throw new BadRequestException('Subscription limit reached for body photo analysis');
     }
-
     if (!s3Url) {
       throw new BadRequestException('S3 URL is required');
     }
-
     // Create result with PROCESSING status
     const result = await this.inbodyResultRepository.create({
       userId,
@@ -263,60 +196,15 @@ export class InbodyService {
 
     return result;
   }
-
   async processBodyPhotoAnalysis(
     resultId: string,
     imageUrl: string,
     userId: string,
+    jobId?: string | number,
   ): Promise<void> {
     try {
-      // Emit started event
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_STARTED, {
-          resultId,
-          progress: 0,
-          message: 'Đang chuẩn bị phân tích...',
-        });
-
-      // Emit progress: analyzing image
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_PROGRESS, {
-          resultId,
-          progress: 15,
-          message: 'Đang suy nghĩ về hình ảnh cơ thể của bạn...',
-        });
-
-      // Emit progress: processing
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_PROGRESS, {
-          resultId,
-          progress: 35,
-          message: 'Đang phân tích các chỉ số cơ thể...',
-        });
-
       // Use AI vision to estimate body composition from photo
       const metrics = await this.aiService.analyzeBodyPhoto(imageUrl);
-
-      // Emit progress: extracting metrics
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_PROGRESS, {
-          resultId,
-          progress: 60,
-          message: 'Đang ước lượng % mỡ cơ thể và các chỉ số...',
-        });
-
-      // Emit progress: generating analysis
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_PROGRESS, {
-          resultId,
-          progress: 80,
-          message: 'Đang tạo phân tích chi tiết...',
-        });
 
       // Generate personalized analysis with estimated metrics
       const aiAnalysis = await this.generateAiAnalysis(metrics, '');
@@ -331,31 +219,29 @@ export class InbodyService {
       // Increment usage after successful analysis
       await this.subscriptionService.incrementAIGenerationUsage(userId, GenerationType.BODY_PHOTO);
 
-      // Emit completion event
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_COMPLETE, {
-          resultId,
-          progress: 100,
-          message: 'Hoàn thành phân tích ảnh cơ thể thành công!',
-        });
+      await this.notificationFacade.notifyGenerationComplete({
+        userId,
+        jobId: jobId || resultId,
+        generationType: GenerationType.BODY_PHOTO,
+        resultId,
+      });
     } catch (error) {
       this.logger.error('Body photo analysis failed', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await this.inbodyResultRepository.update(resultId, {
         status: InbodyStatus.FAILED,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorMessage,
       });
 
-      // Emit error event
-      this.notificationGateway.server
-        .to(`${WebSocketRoom.USER_PREFIX}${userId}`)
-        .emit(WebSocketEvent.BODY_PHOTO_ANALYSIS_ERROR, {
-          resultId,
-          message: error instanceof Error ? error.message : 'Failed to analyze body photo',
-        });
+      await this.notificationFacade.notifyGenerationError({
+        userId,
+        jobId: jobId || resultId,
+        generationType: GenerationType.BODY_PHOTO,
+        resultId,
+        error: errorMessage,
+      });
     }
   }
-
   private async generateAiAnalysis(
     metrics: InbodyMetricsSummary,
     ocrText: string,
