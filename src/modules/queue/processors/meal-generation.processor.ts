@@ -3,13 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { MealService } from '../../meal/meal.service';
 import { SubscriptionService } from '../../user/services/subscription.service';
-import {
-  DayOfWeek,
-  QueueName,
-  JobName,
-  JobProgress,
-  GenerationType,
-} from '../../../common/enums';
+import { DayOfWeek, QueueName, JobName, JobProgress, GenerationType } from '../../../common/enums';
 import { MealPlan } from '../../../repositories';
 import { NotificationFacade } from '../../notification/notification.facade';
 
@@ -70,6 +64,8 @@ export class MealGenerationProcessor {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate meal plan';
       this.logger.error(`Meal plan generation failed for user ${userId}:`, error);
+
+      await this.subscriptionService.decrementAIGenerationUsage(userId, GenerationType.MEAL);
 
       await this.notificationFacade.notifyGenerationError({
         userId,

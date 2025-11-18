@@ -33,6 +33,32 @@ export class SubscriptionService {
 
     this.logger.log(`Incremented ${type} generation usage for user ${userId}: ${newUsage}`);
   }
+
+  async decrementAIGenerationUsage(userId: string, type: GenerationType): Promise<void> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      this.logger.error(`User ${userId} not found when decrementing AI generation usage`);
+      return;
+    }
+    const usageKey = this.getUsageKey(type);
+    if (!usageKey) {
+      return;
+    }
+    const currentUsage = user.subscription?.[usageKey]?.used || 0;
+    const newUsage = currentUsage > 0 ? currentUsage - 1 : 0;
+
+    await this.userRepository.update(userId, {
+      subscription: {
+        ...user.subscription,
+        [usageKey]: {
+          ...user.subscription?.[usageKey],
+          used: newUsage,
+        },
+      } as never,
+    });
+
+    this.logger.log(`Decremented ${type} generation usage for user ${userId}: ${newUsage}`);
+  }
   /**
    * Get user's remaining AI generations by type
    */

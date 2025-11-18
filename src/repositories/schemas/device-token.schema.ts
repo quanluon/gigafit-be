@@ -28,4 +28,3 @@ export class DeviceToken extends Document {
 export const DeviceTokenSchema = SchemaFactory.createForClass(DeviceToken);
 
 DeviceTokenSchema.index({ userId: 1, deviceId: 1 }, { unique: true });
-DeviceTokenSchema.index({ token: 1 }, { unique: true });

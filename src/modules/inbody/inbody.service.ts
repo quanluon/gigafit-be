@@ -74,6 +74,7 @@ export class InbodyService {
       return scanResult;
     } catch (error) {
       this.logger.error('Failed to scan InBody image', error);
+      await this.subscriptionService.decrementAIGenerationUsage(userId, GenerationType.INBODY);
       throw new BadRequestException(
         error instanceof Error ? error.message : 'Failed to scan InBody image',
       );
@@ -232,6 +233,9 @@ export class InbodyService {
         status: InbodyStatus.FAILED,
         errorMessage,
       });
+
+      // Decrement usage on error
+      await this.subscriptionService.decrementAIGenerationUsage(userId, GenerationType.BODY_PHOTO);
 
       await this.notificationFacade.notifyGenerationError({
         userId,

@@ -101,6 +101,8 @@ export class WorkoutGenerationProcessor {
         error instanceof Error ? error.message : 'Failed to generate workout plan';
       this.logger.error(`Workout generation failed for user ${userId}:`, error);
 
+      await this.subscriptionService.decrementAIGenerationUsage(userId, GenerationType.WORKOUT);
+
       await this.notificationFacade.notifyGenerationError({
         userId,
         jobId: job.id || 0,

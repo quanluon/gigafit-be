@@ -1,17 +1,17 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { NotificationFacade } from './notification.facade';
+import { ApiResponse } from 'src/common';
+import { BaseController } from '../../common/base';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   SendTestNotificationDto,
   TestNotificationCategory,
 } from './dto/send-test-notification.dto';
-import { BaseController } from '../../common/base';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ApiResponse } from 'src/common';
+import { NotificationFacade } from './notification.facade';
 
-interface RequestWithUser extends Request {
-  user: { userId: string };
-}
+// interface RequestWithUser extends Request {
+//   user: { userId: string };
+// }
 
 @ApiTags('notification')
 @Controller('notification')
@@ -25,11 +25,12 @@ export class NotificationController extends BaseController {
   @Post('test')
   @ApiOperation({ summary: 'Send a test push notification to the current user' })
   async sendTestNotification(
-    @Req() req: RequestWithUser,
+    // @Req() req: RequestWithUser,
     @Body() dto: SendTestNotificationDto,
   ): Promise<ApiResponse<null>> {
     const payload = {
-      userId: req.user.userId,
+      userId: '6912e0c998f5a497cffb44ee',
+      // userId: req.user.userId,
       jobId: `test-${Date.now()}`,
       generationType: dto.generationType,
       planId: dto.planId,
