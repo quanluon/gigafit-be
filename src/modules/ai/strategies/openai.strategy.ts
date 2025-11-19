@@ -16,11 +16,14 @@ import { InbodyAnalysisSchema } from '../schemas/inbody-analysis.schema';
 import { MealPlanScheduleSchema } from '../schemas/meal-plan.schema';
 import { WorkoutPlanSchema, WorkoutPlan as WorkoutPlanType } from '../schemas/workout-plan.schema';
 import { BodyPhotoVisionSchema } from '../schemas/body-photo-vision.schema';
+import { TrainingRecommendationSchema } from '../schemas/training-recommendation.schema';
 import {
   GeneratePlanRequest,
   GeneratedPlan,
   IAIStrategy,
   WorkoutDay,
+  TrainingRecommendationContent,
+  TrainingRecommendationInput,
 } from './ai-strategy.interface';
 
 /**
@@ -431,6 +434,87 @@ Note: These are estimates based on visual analysis. Actual values may vary. Use 
       throw error;
     }
   }
+  async generateTrainingRecommendation(
+    data: TrainingRecommendationInput,
+    language: string,
+  ): Promise<TrainingRecommendationContent> {
+    try {
+      const llmWithStructuredOutput = this.llm.withStructuredOutput(TrainingRecommendationSchema);
+
+      const weightSeriesText = data.weightSeries7Days?.length
+        ? data.weightSeries7Days.map((w) => `${w}kg`).join(', ')
+        : 'N/A';
+
+      const dataContext = `
+Training Data Analysis:
+- Weight change (7 days): ${data.weightChange7Days !== undefined ? `${data.weightChange7Days > 0 ? '+' : ''}${data.weightChange7Days.toFixed(1)}kg` : 'N/A'}
+- Total weight logs: ${data.totalWeightLogs}
+- Weight series last 7 entries: ${weightSeriesText}
+- Recent training sessions (7 days): ${data.recentSessions}
+- Total calories burned (7 days): ${data.totalCalories}
+${data.latestInbody ? `- Latest InBody: Weight ${data.latestInbody.weight}kg, Body Fat ${data.latestInbody.bodyFatPercent}%, Muscle Mass ${data.latestInbody.skeletalMuscleMass}kg` : ''}
+${data.isFirstPlan ? "- This is the user's first workout plan!" : ''}
+`;
+
+      const promptTemplate = ChatPromptTemplate.fromTemplate(`
+You are an experienced personal trainer with over 10 years of experience. Analyze the following training data and provide a personalized, professional recommendation.
+
+{dataContext}
+
+IMPORTANT INSTRUCTIONS:
+- Write as a warm, encouraging, and professional personal trainer (10+ years experience)
+- Primary narrative should align with user's language preference: {language}
+- Be specific with numbers and data points
+- Provide actionable insights and encouragement
+- Tone should be friendly, supportive, and motivating (like talking to a friend who trusts your expertise)
+- Include specific observations about their progress
+- Give practical advice they can implement immediately
+- If this is their first plan, celebrate the milestone and set expectations
+- If weight is changing, provide context (is it good? what does it mean?)
+- If they're training consistently, acknowledge their dedication
+- If they're not training much, gently encourage them
+
+Generate a recommendation with:
+1. Title: Short, encouraging (max 60 chars) with BOTH English and Vietnamese variants
+2. Summary: 2-4 paragraphs of comprehensive analysis written in a warm, professional PT voice, with BOTH English and Vietnamese variants. Include specific insights, what the data means, encouragement, and actionable next steps.
+3. Metrics: Include all relevant metrics from the data (language-neutral)
+4. CTA: Optional call-to-action with BOTH English and Vietnamese variants (e.g., "View Details", "Start Training", "Keep Going")
+
+Always return structured JSON matching the provided schema (title.summary.cta each with "en" and "vi").`);
+
+      const chain = promptTemplate.pipe(llmWithStructuredOutput);
+      const result = await chain.invoke({
+        dataContext,
+        language,
+      });
+
+      return {
+        title: result.title,
+        summary: result.summary,
+        metrics: result.metrics,
+        cta: result.cta,
+      };
+    } catch (error) {
+      this.logger.error('Failed to generate training recommendation', error);
+      // Fallback to simple recommendation
+      return {
+        title: {
+          en: 'Training Analysis',
+          vi: 'Phân tích kết quả tập luyện',
+        },
+        summary: {
+          en: 'We have analyzed your training data. Keep pushing and you will see results!',
+          vi: 'Chúng tôi đã phân tích dữ liệu tập luyện của bạn. Tiếp tục nỗ lực và bạn sẽ thấy kết quả!',
+        },
+        metrics: { ...data } as Record<string, unknown>,
+        cta: {
+          en: 'View Details',
+          vi: 'Xem chi tiết',
+        },
+      };
+    }
+  }
+
   /**
    * Create default workout for a day using shared templates
    */

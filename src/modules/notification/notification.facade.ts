@@ -130,6 +130,34 @@ export class NotificationFacade {
   async notifyGenerationError(payload: GenerationNotificationPayload): Promise<void> {
     await this.sendGenerationNotification('error', payload);
   }
+  async sendCustomNotification(
+    userId: string,
+    title: Record<Language, string>,
+    body: Record<Language, string>,
+    data?: Record<string, string>,
+  ): Promise<void> {
+    if (!this.messaging) {
+      this.logger.warn('FCM is not configured; custom notification skipped');
+      return;
+    }
+    const tokens = await this.fetchDeviceTokens(userId);
+    if (tokens.length === 0) {
+      this.logger.debug(`No device tokens for user ${userId}; skipping notification`);
+      return;
+    }
+    const user = await this.userRepository.findById(userId);
+    const language = this.resolveLanguage(user?.language);
+    const fallbackLanguage = Language.VI;
+
+    await this.sendMulticast(
+      tokens,
+      {
+        title: title[language] || title[fallbackLanguage],
+        body: body[language] || body[fallbackLanguage],
+      },
+      data || {},
+    );
+  }
   private async sendGenerationNotification(
     category: NotificationCategory,
     payload: GenerationNotificationPayload,

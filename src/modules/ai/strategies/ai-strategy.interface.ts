@@ -1,6 +1,28 @@
 import { DayOfWeek, ExperienceLevel, Goal, TrainingEnvironment } from '../../../common';
 import { InbodyMetricsSummary, InbodyAnalysis, Translatable } from '../../../common/interfaces';
 
+export interface TrainingRecommendationContent {
+  title: Translatable;
+  summary: Translatable;
+  metrics: Record<string, unknown>;
+  cta?: Translatable | null;
+}
+
+export interface TrainingRecommendationInput {
+  weightChange7Days?: number;
+  weightSeries7Days?: number[];
+  totalWeightLogs: number;
+  recentSessions: number;
+  totalCalories: number;
+  latestInbody?: {
+    weight?: number;
+    bodyFatPercent?: number;
+    skeletalMuscleMass?: number;
+  };
+  isFirstPlan?: boolean;
+  userLanguage: string;
+}
+
 /**
  * Request interface for workout plan generation
  */
@@ -88,6 +110,17 @@ export interface IAIStrategy {
    * @returns Estimated metrics from the photo
    */
   analyzeBodyPhoto(imageUrl: string): Promise<InbodyMetricsSummary>;
+
+  /**
+   * Generate personalized training recommendation as a professional PT with 10+ years experience
+   * @param data - Training data including weight changes, sessions, calories, InBody results
+   * @param language - User's preferred language
+   * @returns Personalized recommendation with title, summary, metrics, and CTA
+   */
+  generateTrainingRecommendation(
+    data: TrainingRecommendationInput,
+    language: string,
+  ): Promise<TrainingRecommendationContent>;
 
   /**
    * Get the provider name

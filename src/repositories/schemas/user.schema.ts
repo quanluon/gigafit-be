@@ -92,6 +92,42 @@ export class User extends Document {
   @Prop({ type: String, default: Language.EN })
   language!: Language; // 'en' or 'vi'
 
+  @Prop({
+    type: {
+      generatedAt: Date,
+      title: {
+        en: String,
+        vi: String,
+      },
+      summary: {
+        en: String,
+        vi: String,
+      },
+      metrics: Object,
+      cta: {
+        en: String,
+        vi: String,
+      },
+    },
+    required: false,
+  })
+  trainingRecommendation?: {
+    generatedAt: Date;
+    title: {
+      en: string;
+      vi: string;
+    };
+    summary: {
+      en: string;
+      vi: string;
+    };
+    metrics: Record<string, unknown>;
+    cta?: {
+      en: string;
+      vi: string;
+    };
+  };
+
   // Subscription (nested structure)
   @Prop({
     type: SubscriptionInfo,

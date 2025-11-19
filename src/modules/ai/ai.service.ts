@@ -9,6 +9,8 @@ import {
   IAIStrategy,
   GeneratePlanRequest,
   GeneratedPlan,
+  TrainingRecommendationContent,
+  TrainingRecommendationInput,
 } from './strategies/ai-strategy.interface';
 import { InbodyMetricsSummary, InbodyAnalysis } from '../../common/interfaces';
 
@@ -93,6 +95,15 @@ export class AIService {
    */
   async analyzeBodyPhoto(imageUrl: string): Promise<InbodyMetricsSummary> {
     return this.strategy.analyzeBodyPhoto(imageUrl);
+  }
+  /**
+   * Generate personalized training recommendation as a professional PT with 10+ years experience
+   */
+  async generateTrainingRecommendation(
+    data: TrainingRecommendationInput,
+    language: string,
+  ): Promise<TrainingRecommendationContent> {
+    return this.strategy.generateTrainingRecommendation(data, language);
   }
   /**
    * Generate workout plan using current strategy with automatic fallback

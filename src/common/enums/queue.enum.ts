@@ -1,15 +1,15 @@
 export enum QueueName {
-  WORKOUT_GENERATION = 'workout-generation',
-  MEAL_GENERATION = 'meal-generation',
-  EXERCISE_CRAWLING = 'exercise-crawling',
-  INBODY_OCR = 'inbody-ocr',
+  WORKOUT_GENERATION = 'workout-generation-local',
+  MEAL_GENERATION = 'meal-generation-local',
+  EXERCISE_CRAWLING = 'exercise-crawling-local',
+  INBODY_OCR = 'inbody-ocr-local',
 }
 
 export enum JobName {
-  GENERATE_WORKOUT_PLAN = 'generate-workout-plan',
-  GENERATE_MEAL_PLAN = 'generate-meal-plan',
-  CRAWL_EXERCISES = 'crawl-exercises',
-  PROCESS_INBODY_REPORT = 'process-inbody-report',
+  GENERATE_WORKOUT_PLAN = 'generate-workout-plan-local',
+  GENERATE_MEAL_PLAN = 'generate-meal-plan-local',
+  CRAWL_EXERCISES = 'crawl-exercises-local',
+  PROCESS_INBODY_REPORT = 'process-inbody-report-local',
 }
 
 export enum JobStatus {

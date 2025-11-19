@@ -76,7 +76,7 @@ export class WorkoutController extends BaseController {
   }
   @Get('plan')
   @ApiOperation({ summary: 'Get current week workout plan' })
-  async getCurrentPlan(@Req() req: RequestWithUser): Promise<ApiResponseType<WorkoutPlan>> {
+  async getCurrentPlan(@Req() req: RequestWithUser): Promise<ApiResponseType<WorkoutPlan | null>> {
     const plan = await this.workoutService.getCurrentPlan(req.user.userId);
     return this.success(plan);
   }

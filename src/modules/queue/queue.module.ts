@@ -11,6 +11,7 @@ import { MealModule } from '../meal/meal.module';
 import { NotificationModule } from '../notification/notification.module';
 import { UserModule } from '../user/user.module';
 import { InbodyModule } from '../inbody/inbody.module';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { InbodyModule } from '../inbody/inbody.module';
     forwardRef(() => WorkoutModule),
     forwardRef(() => MealModule),
     forwardRef(() => InbodyModule),
+    forwardRef(() => AnalyticsModule),
     NotificationModule,
     UserModule,
   ],

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import {
   TrainingSessionRepository,
   AwardRepository,
@@ -8,6 +8,7 @@ import {
   AwardType,
 } from '../../repositories';
 import { SessionStatus } from '../../common/enums';
+import { RecommendationService } from './recommendation.service';
 
 interface WeightHistory {
   date: string;
@@ -29,10 +30,14 @@ interface ExercisePR {
 }
 @Injectable()
 export class AnalyticsService {
+  private readonly logger = new Logger(AnalyticsService.name);
+
   constructor(
     private readonly trainingSessionRepository: TrainingSessionRepository,
     private readonly awardRepository: AwardRepository,
     private readonly weightLogRepository: WeightLogRepository,
+    @Inject(forwardRef(() => RecommendationService))
+    private readonly recommendationService: RecommendationService,
   ) {}
   async getWeightHistory(userId: string, days: number = 90): Promise<WeightHistory[]> {
     const endDate = new Date();
@@ -47,12 +52,26 @@ export class AnalyticsService {
     }));
   }
   async logWeight(userId: string, weight: number, notes?: string): Promise<WeightLog> {
-    return this.weightLogRepository.create({
+    const weightLog = await this.weightLogRepository.create({
       userId,
       weight,
       date: new Date(),
       notes,
     });
+
+    // Trigger recommendation if total weight logs is a multiple of 7
+    // const shouldRecommend = await this.recommendationService.shouldGenerateRecommendation(
+    //   userId,
+    //   'weight',
+    // );
+    const shouldRecommend = true;
+    if (shouldRecommend) {
+      this.recommendationService.generateRecommendation(userId).catch((error) => {
+        this.logger.error(`Failed to generate recommendation after weight log:`, error);
+      });
+    }
+
+    return weightLog;
   }
   async getProgressStats(userId: string): Promise<ProgressStats> {
     const model = this.trainingSessionRepository.getModel();

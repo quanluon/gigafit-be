@@ -1,5 +1,5 @@
 import { Process, Processor } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { Job } from 'bull';
 import { WorkoutService } from '../../workout/workout.service';
 import { SubscriptionService } from '../../user/services/subscription.service';
@@ -14,8 +14,9 @@ import {
   JobConcurrency,
   TrainingEnvironment,
 } from '../../../common/enums';
-import { WorkoutPlan } from '../../../repositories';
+import { WorkoutPlan, WorkoutRepository } from '../../../repositories';
 import { NotificationFacade } from '../../notification/notification.facade';
+import { RecommendationService } from '../../analytics/recommendation.service';
 
 export interface WorkoutGenerationJobData {
   userId: string;
@@ -43,6 +44,9 @@ export class WorkoutGenerationProcessor {
     private readonly workoutService: WorkoutService,
     private readonly subscriptionService: SubscriptionService,
     private readonly notificationFacade: NotificationFacade,
+    private readonly workoutRepository: WorkoutRepository,
+    @Inject(forwardRef(() => RecommendationService))
+    private readonly recommendationService: RecommendationService,
   ) {}
   @Process({
     name: JobName.GENERATE_WORKOUT_PLAN,
@@ -88,6 +92,24 @@ export class WorkoutGenerationProcessor {
 
       // Extract plan ID safely
       const planId = this.extractPlanId(plan);
+
+      // Check if this is the first plan and trigger recommendation
+      const existingPlans = await this.workoutRepository.find({ userId });
+      const isFirstPlan = existingPlans.length === 1; // Just created, so length is 1
+
+      if (isFirstPlan) {
+        const shouldRecommend = await this.recommendationService.shouldGenerateRecommendation(
+          userId,
+          'plan',
+        );
+        if (shouldRecommend) {
+          this.recommendationService
+            .generateRecommendation(userId, { isFirstPlan: true })
+            .catch((error) => {
+              this.logger.error(`Failed to generate recommendation after first plan:`, error);
+            });
+        }
+      }
 
       // Notify completion via FCM
       await job.progress(JobProgress.COMPLETED);

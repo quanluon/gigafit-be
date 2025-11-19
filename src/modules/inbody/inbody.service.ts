@@ -1,11 +1,12 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { InbodyResultRepository } from '../../repositories/inbody-result.repository';
+import { Injectable, Logger, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { InbodyResultRepository, WeightLogRepository } from '../../repositories';
 import { InbodyResult, InbodySourceType } from '../../repositories/schemas/inbody-result.schema';
 import { GenerationType, InbodyStatus } from '../../common/enums';
 import { SubscriptionService } from '../user/services/subscription.service';
 import { InbodyMetricsSummary, InbodyAnalysis } from '../../common/interfaces';
 import { AIService } from '../ai/ai.service';
 import { NotificationFacade } from '../notification/notification.facade';
+import { RecommendationService } from '../analytics/recommendation.service';
 
 @Injectable()
 export class InbodyService {
@@ -16,6 +17,9 @@ export class InbodyService {
     private readonly subscriptionService: SubscriptionService,
     private readonly aiService: AIService,
     private readonly notificationFacade: NotificationFacade,
+    private readonly weightLogRepository: WeightLogRepository,
+    @Inject(forwardRef(() => RecommendationService))
+    private readonly recommendationService: RecommendationService,
   ) {}
   async listUserResults(userId: string, limit = 20, offset = 0): Promise<InbodyResult[]> {
     return this.inbodyResultRepository.baseModel
@@ -138,6 +142,19 @@ export class InbodyService {
           result.userId,
           GenerationType.INBODY,
         );
+
+        // Auto-log weight from InBody scan if scanAt is 1+ days after last weight log
+        await this.autoLogWeightFromInbody(result);
+
+        // Trigger recommendation if this is an even-numbered InBody scan
+        const shouldRecommend = await this.recommendationService.shouldGenerateRecommendation(
+          result.userId,
+          'inbody',
+        );
+        if (shouldRecommend) {
+          await this.recommendationService.generateRecommendation(result.userId);
+        }
+
         await this.notificationFacade.notifyGenerationComplete({
           userId: result.userId,
           jobId: jobId || resultId,
@@ -266,6 +283,44 @@ export class InbodyService {
           training_nutrition_advice: '',
         },
       };
+    }
+  }
+
+  private async autoLogWeightFromInbody(result: InbodyResult): Promise<void> {
+    try {
+      if (!result.metrics?.weight || !result.takenAt) {
+        return;
+      }
+
+      const scanAt = new Date(result.takenAt);
+      const latestWeightLog = await this.weightLogRepository.getLatestWeight(result.userId);
+
+      if (latestWeightLog) {
+        const lastLogDate = new Date(latestWeightLog.date);
+        const daysDiff = Math.floor(
+          (scanAt.getTime() - lastLogDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
+        if (daysDiff < 1) {
+          this.logger.debug(
+            `Skipping auto-log weight: scanAt (${scanAt.toISOString()}) is less than 1 day after last weight log (${lastLogDate.toISOString()})`,
+          );
+          return;
+        }
+      }
+
+      await this.weightLogRepository.create({
+        userId: result.userId,
+        weight: result.metrics.weight,
+        date: scanAt,
+        notes: 'Auto-logged from InBody scan',
+      });
+
+      this.logger.log(
+        `Auto-logged weight ${result.metrics.weight}kg from InBody scan for user ${result.userId}`,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to auto-log weight from InBody scan:`, error);
     }
   }
 }
