@@ -36,3 +36,10 @@ export enum RabbitMQPattern {
   MEAL_GENERATE = 'meal.generate',
   MEAL_STATUS = 'meal.status',
 }
+
+export const JobConcurrency = {
+  [QueueName.WORKOUT_GENERATION]: 3,
+  [QueueName.MEAL_GENERATION]: 3,
+  [QueueName.INBODY_OCR]: 5,
+  [QueueName.EXERCISE_CRAWLING]: 3,
+};
