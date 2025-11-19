@@ -16,7 +16,6 @@ RUN --mount=type=cache,target=/root/.pnpm-store \
 
 COPY . .
 
-# 🟢 Build NestJS using SWC (super fast)
 RUN pnpm build
 
 
@@ -37,24 +36,22 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm pkg delete scripts.prepare || true
 
 # Install ONLY production deps
+# (important for small distroless final image)
 RUN --mount=type=cache,target=/root/.pnpm-store \
     pnpm install --prod --frozen-lockfile
 
 
 # ===========================
-#        FINAL IMAGE
+#        DISTROLESS IMAGE
 # ===========================
-# ❗ Using node:20-slim (NOT distroless)
-# -> has sh, bash, ls, cat, vi, ping,...
-FROM node:20-slim AS final
+FROM gcr.io/distroless/nodejs20
 
 WORKDIR /app
 
-# Copy production deps & build
+# Copy node_modules (prod only) and dist build
 COPY --from=prod-builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
+# Cluster mode entrypoint
 EXPOSE 3000
-
-# Entrypoint (cluster or main)
-CMD ["node", "dist/main.js"]
+CMD ["dist/main.js"]

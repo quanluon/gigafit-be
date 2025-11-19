@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { FeedbackContext } from '../../common/enums/feedback-context.enum';
+import { FeedbackContext } from '../../common/enums';
 
 @Schema({ timestamps: true, collection: 'beta_feedback' })
 export class Feedback extends Document {
@@ -10,7 +10,12 @@ export class Feedback extends Document {
   @Prop({ trim: true, lowercase: true })
   email?: string;
 
-  @Prop({ required: true, enum: FeedbackContext, default: FeedbackContext.GENERAL })
+  @Prop({
+    required: true,
+    enum: Object.values(FeedbackContext),
+    default: FeedbackContext.GENERAL,
+    type: String,
+  })
   context!: FeedbackContext;
 
   @Prop({ trim: true })
@@ -33,4 +38,3 @@ export class Feedback extends Document {
 }
 export type FeedbackDocument = Feedback & Document;
 export const FeedbackSchema = SchemaFactory.createForClass(Feedback);
-
