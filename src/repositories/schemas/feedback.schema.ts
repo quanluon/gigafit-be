@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { FeedbackContext } from '../../common/enums';
+import { FeedbackContext } from '../../common/enums/feedback-context.enum';
 
 @Schema({ timestamps: true, collection: 'beta_feedback' })
 export class Feedback extends Document {

@@ -57,4 +57,4 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 3000
 
 # Entrypoint (cluster or main)
-CMD ["node", "dist/cluster.js"]
+CMD ["node", "dist/main.js"]
