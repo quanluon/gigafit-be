@@ -153,6 +153,7 @@ Return a JSON object with a "schedule" property containing the meal plan.
       inbodySummary,
       inbodyMetrics,
     } = request;
+    const { trainingEnvironment } = request;
 
     let requirements = `Goal: ${goal}, Level: ${experienceLevel}, Days: ${scheduleDays.join(',')}`;
 
@@ -161,6 +162,9 @@ Return a JSON object with a "schedule" property containing the meal plan.
     if (height) requirements += `, ${height}cm`;
     if (workoutTimeMinutes) {
       requirements += `, ${workoutTimeMinutes}min/session`;
+    }
+    if (trainingEnvironment) {
+      requirements += `\nEquipment: ${trainingEnvironment}`;
     }
     if (notes) {
       requirements += `\n${notes.slice(0, 100)}`;
@@ -294,7 +298,9 @@ Return JSON per schema. Include OCR text if readable.`;
           ? new Date(previousResult.takenAt).toLocaleDateString()
           : 'previous scan';
         const daysDiff = previousResult.takenAt
-          ? Math.round((Date.now() - new Date(previousResult.takenAt).getTime()) / (1000 * 60 * 60 * 24))
+          ? Math.round(
+              (Date.now() - new Date(previousResult.takenAt).getTime()) / (1000 * 60 * 60 * 24),
+            )
           : null;
 
         const comparisonText = `
@@ -337,7 +343,8 @@ Use this previous data as a reference to:
         // Only use previous values if current extraction is missing or zero
         if (!metrics.weight && prev.weight) metrics.weight = prev.weight;
         if (!metrics.bmi && prev.bmi) metrics.bmi = prev.bmi;
-        if (!metrics.bodyFatPercent && prev.bodyFatPercent) metrics.bodyFatPercent = prev.bodyFatPercent;
+        if (!metrics.bodyFatPercent && prev.bodyFatPercent)
+          metrics.bodyFatPercent = prev.bodyFatPercent;
         if (!metrics.skeletalMuscleMass && prev.skeletalMuscleMass)
           metrics.skeletalMuscleMass = prev.skeletalMuscleMass;
         if (!metrics.bodyFatMass && prev.bodyFatMass) metrics.bodyFatMass = prev.bodyFatMass;
@@ -345,7 +352,8 @@ Use this previous data as a reference to:
           metrics.visceralFatLevel = prev.visceralFatLevel;
         if (!metrics.basalMetabolicRate && prev.basalMetabolicRate)
           metrics.basalMetabolicRate = prev.basalMetabolicRate;
-        if (!metrics.totalBodyWater && prev.totalBodyWater) metrics.totalBodyWater = prev.totalBodyWater;
+        if (!metrics.totalBodyWater && prev.totalBodyWater)
+          metrics.totalBodyWater = prev.totalBodyWater;
         if (!metrics.protein && prev.protein) metrics.protein = prev.protein;
         if (!metrics.minerals && prev.minerals) metrics.minerals = prev.minerals;
       }

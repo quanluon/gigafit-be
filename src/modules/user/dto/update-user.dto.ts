@@ -1,5 +1,12 @@
 import { IsEnum, IsNumber, IsArray, IsOptional, Min } from 'class-validator';
-import { Goal, ExperienceLevel, DayOfWeek, ActivityLevel, Gender } from '../../../common/enums';
+import {
+  Goal,
+  ExperienceLevel,
+  DayOfWeek,
+  ActivityLevel,
+  Gender,
+  TrainingEnvironment,
+} from '../../../common/enums';
 import { Type } from 'class-transformer';
 
 export class UpdateUserDto {
@@ -42,6 +49,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEnum(ActivityLevel)
   activityLevel?: ActivityLevel;
+
+  @IsOptional()
+  @IsEnum(TrainingEnvironment)
+  trainingEnvironment?: TrainingEnvironment;
 
   @IsOptional()
   @IsArray()

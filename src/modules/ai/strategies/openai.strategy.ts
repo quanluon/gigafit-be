@@ -216,6 +216,7 @@ INPUT CONTEXT:
       inbodySummary,
       inbodyMetrics,
     } = request;
+    const { trainingEnvironment } = request;
 
     let requirements = `Goal: ${goal}, Level: ${experienceLevel}, Days: ${scheduleDays.join(',')}`;
 
@@ -224,6 +225,9 @@ INPUT CONTEXT:
     if (height) requirements += `, ${height}cm`;
     if (workoutTimeMinutes) {
       requirements += `, ${workoutTimeMinutes}min/session`;
+    }
+    if (trainingEnvironment) {
+      requirements += `\nEquipment: ${trainingEnvironment}`;
     }
     if (notes) {
       requirements += `\n${notes.slice(0, 100)}`;

@@ -1,4 +1,4 @@
-import { DayOfWeek, ExperienceLevel, Goal } from '../../../common/enums';
+import { DayOfWeek, ExperienceLevel, Goal, TrainingEnvironment } from '../../../common/enums';
 import { Type } from 'class-transformer';
 import { IsArray, IsEnum, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -37,4 +37,8 @@ export class GeneratePlanDto {
   @IsString()
   @MaxLength(500)
   notes?: string;
+
+  @IsOptional()
+  @IsEnum(TrainingEnvironment)
+  trainingEnvironment?: TrainingEnvironment;
 }

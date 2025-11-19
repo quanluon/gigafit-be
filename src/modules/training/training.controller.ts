@@ -67,6 +67,7 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.logExercise(req.user.userId, id, logExerciseDto);
     return this.success(session, 'Exercise logged');
   }
+
   @Post('session/:id/complete')
   @ApiOperation({ summary: 'Complete training session' })
   async completeSession(
@@ -76,6 +77,7 @@ export class TrainingController extends BaseController {
     const session = await this.trainingService.completeSession(req.user.userId, id);
     return this.success(session, 'Session completed');
   }
+
   @Post('session/:id/cancel')
   @ApiOperation({ summary: 'Cancel training session' })
   async cancelSession(

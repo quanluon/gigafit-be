@@ -12,6 +12,7 @@ import {
   JobProgress,
   GenerationType,
   JobConcurrency,
+  TrainingEnvironment,
 } from '../../../common/enums';
 import { WorkoutPlan } from '../../../repositories';
 import { NotificationFacade } from '../../notification/notification.facade';
@@ -27,6 +28,7 @@ export interface WorkoutGenerationJobData {
   useAI?: boolean;
   workoutTimeMinutes?: number;
   notes?: string;
+  trainingEnvironment?: TrainingEnvironment;
 }
 
 interface WorkoutGenerationResult {
@@ -57,6 +59,7 @@ export class WorkoutGenerationProcessor {
       targetWeight,
       workoutTimeMinutes,
       notes,
+      trainingEnvironment,
     } = job.data;
 
     this.logger.log(`Processing workout generation for user ${userId}, job ${job.id}`);
@@ -78,6 +81,7 @@ export class WorkoutGenerationProcessor {
         targetWeight,
         workoutTimeMinutes,
         notes,
+        trainingEnvironment,
       });
 
       await job.progress(JobProgress.FINALIZING);

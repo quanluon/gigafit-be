@@ -31,6 +31,9 @@ export class ExerciseLog {
   @Prop({ type: [ExerciseSetSchema], required: true })
   sets!: ExerciseSet[];
 
+  @Prop({ type: Number })
+  calories?: number; // Calories burned for this exercise
+
   @Prop()
   notes?: string; // User notes about this exercise
 
@@ -74,6 +77,9 @@ export class TrainingSession extends Document {
 
   @Prop()
   duration?: number; // Duration in minutes
+
+  @Prop({ type: Number })
+  totalCalories?: number; // Total calories burned in this session
 
   @Prop()
   notes?: string; // Session notes

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { TrainingSessionRepository } from '../../repositories';
+import { TrainingSessionRepository, UserRepository } from '../../repositories';
 import { TrainingSession } from '../../repositories';
 import { SessionStatus, DayOfWeek, EventName } from '../../common/enums';
 import { StartSessionDto } from './dto/start-session.dto';
@@ -12,6 +12,7 @@ import { ExerciseLoggedEvent } from '../analytics/events/exercise-logged.event';
 export class TrainingService {
   constructor(
     private readonly trainingSessionRepository: TrainingSessionRepository,
+    private readonly userRepository: UserRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
   async startSession(userId: string, startSessionDto: StartSessionDto): Promise<TrainingSession> {
@@ -131,15 +132,74 @@ export class TrainingService {
     if (session.status !== SessionStatus.IN_PROGRESS) {
       throw new BadRequestException('Session is not in progress');
     }
+
+    // Get user data for accurate calorie calculation
+    const user = await this.userRepository.findById(userId);
+    const duration = session.startTime
+      ? Math.round((new Date().getTime() - session.startTime.getTime()) / 60000)
+      : 0;
+
+    // Calculate calories for each exercise and total
+    const exercisesWithCalories = session.exercises.map((exercise) => {
+      const calories = this.calculateExerciseCalories(exercise, user, duration);
+      return { ...exercise, calories };
+    });
+
+    const totalCalories = exercisesWithCalories.reduce((sum, ex) => sum + (ex.calories || 0), 0);
+
     const updatedSession = await this.trainingSessionRepository.update(sessionId, {
       endTime: new Date(),
       status: SessionStatus.COMPLETED,
+      exercises: exercisesWithCalories,
+      totalCalories,
+      duration,
     });
 
     if (!updatedSession) {
       throw new NotFoundException('Failed to complete session');
     }
     return updatedSession;
+  }
+
+  /**
+   * Calculate calories burned based on exercise volume, user weight, and duration
+   * Formula: (MET * weight_kg * duration_min) / 60 + (volume * intensity_factor)
+   * MET for strength training: 3-6 (based on intensity)
+   */
+  private calculateExerciseCalories(
+    exercise: { sets: Array<{ reps: number; weight: number }> },
+    user: {
+      weight?: number;
+      height?: number;
+      age?: number;
+      gender?: string;
+      activityLevel?: string;
+    } | null,
+    sessionDuration: number,
+  ): number {
+    const totalVolume = exercise.sets.reduce((sum, set) => sum + set.reps * set.weight, 0);
+    const avgWeightPerSet = exercise.sets.length > 0 ? totalVolume / exercise.sets.length : 0;
+    const userWeight = user?.weight || 70; // Default 70kg if not available
+
+    // Calculate intensity based on weight lifted relative to body weight
+    const intensityRatio = userWeight > 0 ? avgWeightPerSet / userWeight : 0;
+    let met = 3; // Base MET for light strength training
+
+    if (intensityRatio > 0.8) {
+      met = 6; // High intensity
+    } else if (intensityRatio > 0.5) {
+      met = 5; // Moderate intensity
+    } else if (intensityRatio > 0.2) {
+      met = 4; // Light-moderate
+    }
+
+    // Calculate calories: MET * weight * duration / 60
+    // Add volume-based component for accuracy
+    const durationPerExercise = sessionDuration / Math.max(exercise.sets.length, 1);
+    const baseCalories = (met * userWeight * durationPerExercise) / 60;
+    const volumeCalories = totalVolume * 0.03; // Volume contribution
+
+    return Math.round(baseCalories + volumeCalories);
   }
   async cancelSession(userId: string, sessionId: string): Promise<TrainingSession> {
     const session = await this.getSessionById(userId, sessionId);

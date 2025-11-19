@@ -8,6 +8,7 @@ import {
   Goal,
   Language,
   SubscriptionPlan,
+  TrainingEnvironment,
 } from '../../common/enums';
 
 // Nested subscription schema
@@ -81,6 +82,9 @@ export class User extends Document {
 
   @Prop({ type: String, enum: ActivityLevel })
   activityLevel?: ActivityLevel;
+
+  @Prop({ type: String, enum: TrainingEnvironment })
+  trainingEnvironment?: TrainingEnvironment;
 
   @Prop({ type: [String], enum: DayOfWeek, default: [] })
   scheduleDays!: DayOfWeek[];

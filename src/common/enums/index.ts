@@ -13,3 +13,4 @@ export * from './event-name.enum';
 export * from './plan-source.enum';
 export * from './inbody-status.enum';
 export * from './feedback-context.enum';
+export * from './training-environment.enum';

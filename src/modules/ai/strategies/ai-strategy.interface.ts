@@ -1,4 +1,4 @@
-import { DayOfWeek, ExperienceLevel, Goal } from '../../../common';
+import { DayOfWeek, ExperienceLevel, Goal, TrainingEnvironment } from '../../../common';
 import { InbodyMetricsSummary, InbodyAnalysis, Translatable } from '../../../common/interfaces';
 
 /**
@@ -13,6 +13,7 @@ export interface GeneratePlanRequest {
   targetWeight?: number;
   workoutTimeMinutes?: number;
   notes?: string;
+  trainingEnvironment?: TrainingEnvironment;
   inbodySummary?: string;
   inbodyMetrics?: InbodyMetricsSummary;
 }
