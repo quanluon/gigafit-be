@@ -69,7 +69,7 @@ jobs:
             docker pull quanluonluon/gigafit-api:latest
             
             echo "🚀 Starting services..."
-            docker compose up --scale app=2 -d
+            docker compose up -d
 
             docker image prune -f
             

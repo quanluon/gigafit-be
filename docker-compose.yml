@@ -1,15 +1,8 @@
-version: '3.8'
-
 services:
-
   app:
-
-#    container_name: gigafit-api
     image: quanluonluon/gigafit-api:latest
-#   ports:
-#      - "3000:3000"
+    
     env_file: .env
-    command: ["npm","run","start:prod"]
     restart: always
 
     deploy:
@@ -19,21 +12,29 @@ services:
 
     labels:
       - "traefik.enable=true"
+
+      # HTTP router
       - "traefik.http.routers.app.rule=Host(`beta-api.gigafit.space`)"
       - "traefik.http.routers.app.entrypoints=web"
+
+      # Tell traefik the internal port
       - "traefik.http.services.app.loadbalancer.server.port=3000"
+
+      # HTTPS router
       - "traefik.http.routers.app-secure.rule=Host(`beta-api.gigafit.space`)"
       - "traefik.http.routers.app-secure.entrypoints=websecure"
       - "traefik.http.routers.app-secure.tls=true"
       - "traefik.http.routers.app-secure.tls.certresolver=myresolver"
-      # Add sticky session configuration for WebSockets
+
+      # Sticky session for WebSocket
       - "traefik.http.services.app.loadbalancer.sticky=true"
       - "traefik.http.services.app.loadbalancer.sticky.cookie.name=giga_socket_affinity"
       - "traefik.http.services.app.loadbalancer.sticky.cookie.secure=true"
       - "traefik.http.services.app.loadbalancer.sticky.cookie.httpOnly=true"
+
     networks:
-         - traefik_net
+      - traefik_net
 
 networks:
-   traefik_net:
-      external: true
+  traefik_net:
+    external: true
