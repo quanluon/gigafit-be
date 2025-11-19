@@ -27,9 +27,12 @@ export class QueueService {
   ) {}
   /**
    * Add workout generation job to queue
+   * @param data Job data
+   * @param priority Job priority (higher = more urgent, default: 0)
    */
   async addWorkoutGenerationJob(
     data: WorkoutGenerationJobData,
+    priority = 0,
   ): Promise<Job<WorkoutGenerationJobData>> {
     const job = await this.workoutGenerationQueue.add(JobName.GENERATE_WORKOUT_PLAN, data, {
       attempts: 3,
@@ -38,16 +41,25 @@ export class QueueService {
         delay: 2000,
       },
       removeOnComplete: true,
-      removeOnFail: false,
+      removeOnFail: true,
+      priority, // Higher priority jobs processed first
+      jobId: `workout-${data.userId}-${Date.now()}`, // Unique job ID for deduplication
     });
 
-    this.logger.log(`Added workout generation job ${job.id} for user ${data.userId}`);
+    this.logger.log(
+      `Added workout generation job ${job.id} for user ${data.userId} with priority ${priority}`,
+    );
     return job;
   }
   /**
    * Add meal generation job to queue
+   * @param data Job data
+   * @param priority Job priority (higher = more urgent, default: 0)
    */
-  async addMealGenerationJob(data: MealGenerationJobData): Promise<Job<MealGenerationJobData>> {
+  async addMealGenerationJob(
+    data: MealGenerationJobData,
+    priority = 0,
+  ): Promise<Job<MealGenerationJobData>> {
     const job = await this.mealGenerationQueue.add(JobName.GENERATE_MEAL_PLAN, data, {
       attempts: 3,
       backoff: {
@@ -55,16 +67,22 @@ export class QueueService {
         delay: 2000,
       },
       removeOnComplete: true,
-      removeOnFail: false,
+      removeOnFail: true,
+      priority,
+      jobId: `meal-${data.userId}-${Date.now()}`,
     });
 
-    this.logger.log(`Added meal generation job ${job.id} for user ${data.userId}`);
+    this.logger.log(
+      `Added meal generation job ${job.id} for user ${data.userId} with priority ${priority}`,
+    );
     return job;
   }
   /**
    * Add InBody OCR/analysis job to queue
+   * @param data Job data
+   * @param priority Job priority (higher = more urgent, default: 0)
    */
-  async addInbodyAnalysisJob(data: InbodyOcrJobData): Promise<Job<InbodyOcrJobData>> {
+  async addInbodyAnalysisJob(data: InbodyOcrJobData, priority = 0): Promise<Job<InbodyOcrJobData>> {
     const job = await this.inbodyOcrQueue.add(JobName.PROCESS_INBODY_REPORT, data, {
       attempts: 3,
       backoff: {
@@ -72,23 +90,35 @@ export class QueueService {
         delay: 2000,
       },
       removeOnComplete: true,
-      removeOnFail: false,
+      removeOnFail: true,
+      priority,
+      jobId: `inbody-${data.userId}-${Date.now()}`,
     });
 
-    this.logger.log(`Added InBody analysis job ${job.id} for user ${data.userId}`);
+    this.logger.log(
+      `Added InBody analysis job ${job.id} for user ${data.userId} with priority ${priority}`,
+    );
     return job;
   }
   /**
-   * Get job status
+   * Get job status (searches across all queues)
    */
   async getJobStatus(jobId: string): Promise<JobStatusResponse> {
-    const job = await this.workoutGenerationQueue.getJob(jobId);
+    // Search across all queues in parallel
+    const [workoutJob, mealJob, inbodyJob] = await Promise.all([
+      this.workoutGenerationQueue.getJob(jobId),
+      this.mealGenerationQueue.getJob(jobId),
+      this.inbodyOcrQueue.getJob(jobId),
+    ]);
+
+    const job = workoutJob || mealJob || inbodyJob;
 
     if (!job) {
       throw new Error('Job not found');
     }
-    const state = await job.getState();
-    const progress = await job.progress();
+
+    // Get state and progress in parallel
+    const [state, progress] = await Promise.all([job.getState(), job.progress()]);
 
     return {
       id: job.id?.toString() || '',
@@ -119,7 +149,7 @@ export class QueueService {
     };
   }
   /**
-   * Get all active jobs for a user across all queues
+   * Get all active jobs for a user across all queues (optimized with parallel queries)
    */
   async getUserActiveJobs(userId: string): Promise<
     Array<{
@@ -131,63 +161,53 @@ export class QueueService {
     }>
   > {
     const activeStates: BullJobStatus[] = ['active', 'waiting', 'delayed'];
-    const result: Array<{
-      jobId: string;
-      type: QueueName;
-      status: JobStatus;
-      progress: number;
-      message?: string;
-    }> = [];
 
-    // Get active workout jobs
-    const workoutJobs = await this.workoutGenerationQueue.getJobs(activeStates);
-    for (const job of workoutJobs) {
-      if (job.data.userId === userId) {
-        const state = await job.getState();
-        const progress = await job.progress();
+    // Parallel fetch from all queues
+    const [workoutJobs, mealJobs, inbodyJobs] = await Promise.all([
+      this.workoutGenerationQueue.getJobs(activeStates),
+      this.mealGenerationQueue.getJobs(activeStates),
+      this.inbodyOcrQueue.getJobs(activeStates),
+    ]);
 
-        result.push({
+    // Filter and process jobs in parallel
+    const processJobs = async (
+      jobs: Job[],
+      type: QueueName,
+    ): Promise<
+      Array<{
+        jobId: string;
+        type: QueueName;
+        status: JobStatus;
+        progress: number;
+        message?: string;
+      }>
+    > => {
+      const userJobs = jobs.filter((job) => job.data?.userId === userId);
+
+      // Process all jobs in parallel
+      const jobPromises = userJobs.map(async (job) => {
+        const [state, progress] = await Promise.all([job.getState(), job.progress()]);
+
+        return {
           jobId: job.id?.toString() || '',
-          type: QueueName.WORKOUT_GENERATION,
+          type,
           status: this.mapBullStatusToJobStatus(state),
           progress: typeof progress === 'number' ? progress : 0,
           message: this.getProgressMessage(progress),
-        });
-      }
-    }
-    // Get active meal jobs
-    const mealJobs = await this.mealGenerationQueue.getJobs(activeStates);
-    // Get active InBody jobs
-    const inbodyJobs = await this.inbodyOcrQueue.getJobs(activeStates);
-    for (const job of inbodyJobs) {
-      if (job.data.userId === userId) {
-        const state = await job.getState();
-        const progress = await job.progress();
+        };
+      });
 
-        result.push({
-          jobId: job.id?.toString() || '',
-          type: QueueName.INBODY_OCR,
-          status: this.mapBullStatusToJobStatus(state),
-          progress: typeof progress === 'number' ? progress : 0,
-          message: this.getProgressMessage(progress),
-        });
-      }
-    }
-    for (const job of mealJobs) {
-      if (job.data.userId === userId) {
-        const state = await job.getState();
-        const progress = await job.progress();
+      return Promise.all(jobPromises);
+    };
 
-        result.push({
-          jobId: job.id?.toString() || '',
-          type: QueueName.MEAL_GENERATION,
-          status: this.mapBullStatusToJobStatus(state),
-          progress: typeof progress === 'number' ? progress : 0,
-          message: this.getProgressMessage(progress),
-        });
-      }
-    }
-    return result;
+    // Process all queue types in parallel
+    const [workoutResults, mealResults, inbodyResults] = await Promise.all([
+      processJobs(workoutJobs, QueueName.WORKOUT_GENERATION),
+      processJobs(mealJobs, QueueName.MEAL_GENERATION),
+      processJobs(inbodyJobs, QueueName.INBODY_OCR),
+    ]);
+
+    return [...workoutResults, ...mealResults, ...inbodyResults];
   }
   /**
    * Get progress message based on progress value

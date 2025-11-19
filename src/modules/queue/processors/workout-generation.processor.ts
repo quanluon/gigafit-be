@@ -11,6 +11,7 @@ import {
   JobName,
   JobProgress,
   GenerationType,
+  JobConcurrency,
 } from '../../../common/enums';
 import { WorkoutPlan } from '../../../repositories';
 import { NotificationFacade } from '../../notification/notification.facade';
@@ -41,7 +42,10 @@ export class WorkoutGenerationProcessor {
     private readonly subscriptionService: SubscriptionService,
     private readonly notificationFacade: NotificationFacade,
   ) {}
-  @Process(JobName.GENERATE_WORKOUT_PLAN)
+  @Process({
+    name: JobName.GENERATE_WORKOUT_PLAN,
+    concurrency: JobConcurrency[QueueName.WORKOUT_GENERATION], // Process up to 3 jobs concurrently
+  })
   async handleGeneratePlan(job: Job<WorkoutGenerationJobData>): Promise<WorkoutGenerationResult> {
     const {
       userId,

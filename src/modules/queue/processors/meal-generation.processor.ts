@@ -1,11 +1,18 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
-import { MealService } from '../../meal/meal.service';
-import { SubscriptionService } from '../../user/services/subscription.service';
-import { DayOfWeek, QueueName, JobName, JobProgress, GenerationType } from '../../../common/enums';
+import {
+  DayOfWeek,
+  GenerationType,
+  JobConcurrency,
+  JobName,
+  JobProgress,
+  QueueName,
+} from '../../../common/enums';
 import { MealPlan } from '../../../repositories';
+import { MealService } from '../../meal/meal.service';
 import { NotificationFacade } from '../../notification/notification.facade';
+import { SubscriptionService } from '../../user/services/subscription.service';
 
 export interface MealGenerationJobData {
   userId: string;
@@ -27,7 +34,10 @@ export class MealGenerationProcessor {
     private readonly subscriptionService: SubscriptionService,
     private readonly notificationFacade: NotificationFacade,
   ) {}
-  @Process(JobName.GENERATE_MEAL_PLAN)
+  @Process({
+    name: JobName.GENERATE_MEAL_PLAN,
+    concurrency: JobConcurrency[QueueName.MEAL_GENERATION], // Process up to 3 jobs concurrently
+  })
   async handleGeneratePlan(job: Job<MealGenerationJobData>): Promise<MealGenerationResult> {
     const { userId, notes } = job.data;
 

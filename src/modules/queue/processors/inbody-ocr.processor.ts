@@ -1,7 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 import { Logger } from '@nestjs/common';
-import { QueueName, JobName } from '../../../common/enums';
+import { QueueName, JobName, JobConcurrency } from '../../../common/enums';
 import { InbodyService } from '../../inbody/inbody.service';
 
 export interface InbodyOcrJobData {
@@ -15,7 +15,10 @@ export class InbodyOcrProcessor {
   private readonly logger = new Logger(InbodyOcrProcessor.name);
 
   constructor(private readonly inbodyService: InbodyService) {}
-  @Process(JobName.PROCESS_INBODY_REPORT)
+  @Process({
+    name: JobName.PROCESS_INBODY_REPORT,
+    concurrency: JobConcurrency[QueueName.INBODY_OCR], // Process up to 5 jobs concurrently (OCR is faster)
+  })
   async handle(job: Job<InbodyOcrJobData>): Promise<{ userId: string }> {
     const { userId, s3Url, originalFilename, takenAt } = job.data;
 
