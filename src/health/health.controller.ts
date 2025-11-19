@@ -6,6 +6,7 @@ interface HealthResponse {
   timestamp: string;
   uptime: number;
   environment: string;
+  pid: number;
 }
 @ApiTags('health')
 @Controller('health')
@@ -18,17 +19,18 @@ export class HealthController {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
+      pid: process.pid,
     };
   }
   @Get('ready')
   @ApiOperation({ summary: 'Readiness check' })
-  ready(): { ready: boolean } {
+  ready(): Promise<{ ready: boolean; pid: number }> {
     // Add checks for database, redis, etc.
-    return { ready: true };
+    return Promise.resolve({ ready: true, pid: process.pid });
   }
   @Get('live')
   @ApiOperation({ summary: 'Liveness check' })
-  live(): { alive: boolean } {
-    return { alive: true };
+  live(): Promise<{ alive: boolean }> {
+    return Promise.resolve({ alive: true, pid: process.pid });
   }
 }
