@@ -37,22 +37,24 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm pkg delete scripts.prepare || true
 
 # Install ONLY production deps
-# (important for small distroless final image)
 RUN --mount=type=cache,target=/root/.pnpm-store \
     pnpm install --prod --frozen-lockfile
 
 
 # ===========================
-#        DISTROLESS IMAGE
+#        FINAL IMAGE
 # ===========================
-FROM gcr.io/distroless/nodejs20
+# ❗ Using node:20-slim (NOT distroless)
+# -> has sh, bash, ls, cat, vi, ping,...
+FROM node:20-slim AS final
 
 WORKDIR /app
 
-# Copy node_modules (prod only) and dist build
+# Copy production deps & build
 COPY --from=prod-builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
-# Cluster mode entrypoint
 EXPOSE 3000
-CMD ["dist/cluster.js"]
+
+# Entrypoint (cluster or main)
+CMD ["node", "dist/cluster.js"]
