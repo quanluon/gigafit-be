@@ -64,16 +64,17 @@ jobs:
             
             echo "📦 Navigating to deployment directory..."
             cd /opt/gigafit-api
-            
-            echo "🐳 Pulling latest Docker images..."
+                        
+            echo "🐳 Pulling latest image..."
             docker pull quanluonluon/gigafit-api:latest
-            
-            echo "🚀 Starting services..."
-            docker compose up -d
-
+    
+            echo "🚀 Restarting app service..."
+            docker compose up -d --no-deps app
+    
+            echo "🧹 Cleaning unused images..."
             docker image prune -f
-            
-            echo "✅ Deployment completed successfully!"
+    
+            echo "✅ Deploy done."
             
             echo "📊 Service status:"
             docker compose ps
@@ -90,5 +91,4 @@ jobs:
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Docker Image:** \`quanluonluon/gigafit-api:latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Domain:** \`gigafitapi.nguyencong-mobi.online\`" >> $GITHUB_STEP_SUMMARY
 

@@ -5,35 +5,37 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install all deps (including dev) for building NestJS
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --legacy-peer-deps
+COPY package*.json pnpm-lock.yaml ./
+
+# Install dependencies (dev + prod)
+RUN --mount=type=cache,target=/root/.pnpm-store \
+    pnpm install
 
 COPY . .
-
-RUN npm run build
+RUN pnpm build
 
 
 # ===========================
-#    PROD BUILDER (deps)
+#   PROD BUILDER (prod deps)
 # ===========================
 FROM node:20-slim AS prod-builder
 
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Remove Husky prepare script
-RUN npm pkg delete scripts.prepare || true
+COPY package*.json pnpm-lock.yaml ./
 
-# Install only production dependencies
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --legacy-peer-deps && \
-    npm cache clean --force
+# Remove husky script
+RUN pnpm pkg delete scripts.prepare || true
 
+# Install only prod dependencies
+RUN --mount=type=cache,target=/root/.pnpm-store \
+    pnpm install --prod --frozen-lockfile
 
 # ===========================
 #        DISTROLESS
@@ -42,13 +44,9 @@ FROM gcr.io/distroless/nodejs20
 
 WORKDIR /app
 
-# Copy prod modules
 COPY --from=prod-builder /app/node_modules ./node_modules
-
-# Copy dist output
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-# Start NestJS via native cluster
 CMD ["dist/cluster.js"]
