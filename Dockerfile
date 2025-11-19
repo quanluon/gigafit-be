@@ -1,30 +1,54 @@
-# ---------- Builder ----------
-FROM node:20-alpine AS builder
+# ===========================
+#        BUILDER
+# ===========================
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+
+# Install all deps (including dev) for building NestJS
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps
 
 COPY . .
+
 RUN npm run build
 
 
-# ---------- Production ----------
-FROM node:20-alpine
+# ===========================
+#    PROD BUILDER (deps)
+# ===========================
+FROM node:20-slim AS prod-builder
 
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Install PM2 globally
-RUN npm install -g pm2@latest
-
-# Copy build & dependencies
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
 COPY package*.json ./
+
+# Remove Husky prepare script
+RUN npm pkg delete scripts.prepare || true
+
+# Install only production dependencies
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --legacy-peer-deps && \
+    npm cache clean --force
+
+
+# ===========================
+#        DISTROLESS
+# ===========================
+FROM gcr.io/distroless/nodejs20
+
+WORKDIR /app
+
+# Copy prod modules
+COPY --from=prod-builder /app/node_modules ./node_modules
+
+# Copy dist output
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-# Run NestJS with PM2 in cluster mode using all CPU cores
-CMD ["pm2-runtime", "start", "dist/main.js", "-i", "max"]
+# Start NestJS via native cluster
+CMD ["dist/cluster.js"]
