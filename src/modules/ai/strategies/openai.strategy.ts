@@ -438,6 +438,7 @@ Note: These are estimates based on visual analysis. Actual values may vary. Use 
     data: TrainingRecommendationInput,
     language: string,
   ): Promise<TrainingRecommendationContent> {
+    const metricsPayload = this.buildMetricsPayload(data);
     try {
       const llmWithStructuredOutput = this.llm.withStructuredOutput(TrainingRecommendationSchema);
 
@@ -446,41 +447,43 @@ Note: These are estimates based on visual analysis. Actual values may vary. Use 
         : 'N/A';
 
       const dataContext = `
-Training Data Analysis:
-- Weight change (7 days): ${data.weightChange7Days !== undefined ? `${data.weightChange7Days > 0 ? '+' : ''}${data.weightChange7Days.toFixed(1)}kg` : 'N/A'}
+Results snapshot:
+- 7-day weight change: ${
+        data.weightChange7Days !== undefined
+          ? `${data.weightChange7Days > 0 ? '+' : ''}${data.weightChange7Days.toFixed(1)}kg`
+          : 'N/A'
+      }
 - Total weight logs: ${data.totalWeightLogs}
-- Weight series last 7 entries: ${weightSeriesText}
-- Recent training sessions (7 days): ${data.recentSessions}
-- Total calories burned (7 days): ${data.totalCalories}
-${data.latestInbody ? `- Latest InBody: Weight ${data.latestInbody.weight}kg, Body Fat ${data.latestInbody.bodyFatPercent}%, Muscle Mass ${data.latestInbody.skeletalMuscleMass}kg` : ''}
-${data.isFirstPlan ? "- This is the user's first workout plan!" : ''}
+- Latest 7 weights: ${weightSeriesText}
+- Sessions (7 days): ${data.recentSessions}
+- Calories burned (7 days): ${data.totalCalories}
+${
+  data.latestInbody
+    ? `- Latest InBody: ${data.latestInbody.weight}kg • Body fat ${data.latestInbody.bodyFatPercent}% • Muscle ${data.latestInbody.skeletalMuscleMass}kg`
+    : ''
+}
+${data.isFirstPlan ? '- First workout plan milestone' : ''}
 `;
 
       const promptTemplate = ChatPromptTemplate.fromTemplate(`
-You are an experienced personal trainer with over 10 years of experience. Analyze the following training data and provide a personalized, professional recommendation.
+You are a veteran personal trainer (10+ years). Use the data to explain:
+1. What just happened (results & effectiveness)
+2. What it means (progress, gaps, readiness)
+3. What to do next (clear next steps)
 
 {dataContext}
 
-IMPORTANT INSTRUCTIONS:
-- Write as a warm, encouraging, and professional personal trainer (10+ years experience)
-- Primary narrative should align with user's language preference: {language}
-- Be specific with numbers and data points
-- Provide actionable insights and encouragement
-- Tone should be friendly, supportive, and motivating (like talking to a friend who trusts your expertise)
-- Include specific observations about their progress
-- Give practical advice they can implement immediately
-- If this is their first plan, celebrate the milestone and set expectations
-- If weight is changing, provide context (is it good? what does it mean?)
-- If they're training consistently, acknowledge their dedication
-- If they're not training much, gently encourage them
+Writing rules:
+- Voice: warm coach, default to {language}
+- Cite exact numbers; keep paragraphs lean with blank-line spacing
+- Deliver each paragraph as 1-2 bullet-style sentences (use "- " prefix) to make the summary easy to scan
+- Highlight wins or plateaus, address low activity, and tie each insight to an action
 
-Generate a recommendation with:
-1. Title: Short, encouraging (max 60 chars) with BOTH English and Vietnamese variants
-2. Summary: 2-4 paragraphs of comprehensive analysis written in a warm, professional PT voice, with BOTH English and Vietnamese variants. Include specific insights, what the data means, encouragement, and actionable next steps.
-3. Metrics: Include all relevant metrics from the data (language-neutral)
-4. CTA: Optional call-to-action with BOTH English and Vietnamese variants (e.g., "View Details", "Start Training", "Keep Going")
-
-Always return structured JSON matching the provided schema (title.summary.cta each with "en" and "vi").`);
+Deliver JSON:
+1. Title (<=60 chars) in EN + VI
+2. Summary: 2-3 short bullet paragraphs per language following result → meaning → next steps
+3. Metrics: language-neutral stats from the data
+4. CTA (optional) in EN + VI`);
 
       const chain = promptTemplate.pipe(llmWithStructuredOutput);
       const result = await chain.invoke({
@@ -491,7 +494,7 @@ Always return structured JSON matching the provided schema (title.summary.cta ea
       return {
         title: result.title,
         summary: result.summary,
-        metrics: result.metrics,
+        metrics: metricsPayload,
         cta: result.cta,
       };
     } catch (error) {
@@ -506,13 +509,36 @@ Always return structured JSON matching the provided schema (title.summary.cta ea
           en: 'We have analyzed your training data. Keep pushing and you will see results!',
           vi: 'Chúng tôi đã phân tích dữ liệu tập luyện của bạn. Tiếp tục nỗ lực và bạn sẽ thấy kết quả!',
         },
-        metrics: { ...data } as Record<string, unknown>,
+        metrics: metricsPayload,
         cta: {
           en: 'View Details',
           vi: 'Xem chi tiết',
         },
       };
     }
+  }
+
+  private buildMetricsPayload(data: TrainingRecommendationInput): Record<string, unknown> {
+    const formatWeight = (value?: number): string =>
+      value !== undefined ? `${value > 0 ? '+' : ''}${value.toFixed(1)}kg` : 'N/A';
+
+    const formatSeries = (series?: number[]): string =>
+      series?.length ? series.map((value) => `${value}kg`).join(', ') : 'N/A';
+
+    return {
+      weight_change: formatWeight(data.weightChange7Days),
+      total_weight_logs: data.totalWeightLogs,
+      weight_series_last_7_entries: formatSeries(data.weightSeries7Days),
+      recent_training_sessions: data.recentSessions,
+      total_calories_burned: data.totalCalories,
+      latest_inbody:
+        data.latestInbody && (data.latestInbody.weight || data.latestInbody.bodyFatPercent)
+          ? `Weight ${data.latestInbody.weight ?? 'N/A'}kg, Body fat ${
+              data.latestInbody.bodyFatPercent ?? 'N/A'
+            }%, Muscle ${data.latestInbody.skeletalMuscleMass ?? 'N/A'}kg`
+          : undefined,
+      first_workout_plan: data.isFirstPlan ?? false,
+    };
   }
 
   /**
